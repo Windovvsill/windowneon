@@ -7,11 +7,6 @@ class HighlightWindow: NSWindow {
     static var borderWidth: CGFloat = 3.0
     static var borderColor: NSColor = .systemBlue
     static var cornerRadius: CGFloat = defaultCornerRadius
-    static var dimEnabled: Bool = false
-
-    /// Instance-level overrides used by the dim highlight window.
-    var overrideColor: NSColor?
-    var overrideCornerRadius: CGFloat?
 
     convenience init() {
         self.init(contentRect: .zero, styleMask: [.borderless], backing: .buffered, defer: true)
@@ -41,9 +36,8 @@ class HighlightWindow: NSWindow {
 
 private class BorderView: NSView {
     override func draw(_ dirtyRect: NSRect) {
-        let win = self.window as? HighlightWindow
-        let color = win?.overrideColor ?? HighlightWindow.borderColor
-        let radius = win?.overrideCornerRadius ?? HighlightWindow.cornerRadius
+        let color = HighlightWindow.borderColor
+        let radius = HighlightWindow.cornerRadius
         let width = HighlightWindow.borderWidth
         let inset = width / 2
         let path = NSBezierPath(roundedRect: bounds.insetBy(dx: inset, dy: inset), xRadius: radius, yRadius: radius)

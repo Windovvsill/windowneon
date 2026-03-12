@@ -8,7 +8,6 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         loadSavedWidth()
-        loadSavedDimEnabled()
         setupStatusItem()
         requestAccessibilityAndStart()
     }
@@ -21,10 +20,6 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             HighlightWindow.globalBorderWidth = saved
             HighlightWindow.borderWidth = saved
         }
-    }
-
-    private func loadSavedDimEnabled() {
-        HighlightWindow.dimEnabled = UserDefaults.standard.bool(forKey: "dimUnfocused")
     }
 
     private func setupStatusItem() {
@@ -73,10 +68,6 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         let excludeItem = NSMenuItem(title: "Exclude App from Border", action: #selector(toggleExcludeCurrentApp), keyEquivalent: "")
         excludeItem.tag = 1004
 
-        let dimItem = NSMenuItem(title: "Dim Unfocused Windows", action: #selector(toggleDimUnfocused(_:)), keyEquivalent: "")
-        dimItem.tag = 1005
-        dimItem.state = HighlightWindow.dimEnabled ? .on : .off
-
         let menu = NSMenu()
         menu.delegate = self
         menu.addItem(widthItem)
@@ -84,8 +75,6 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         menu.addItem(radiusItem)
         menu.addItem(colorItem)
         menu.addItem(excludeItem)
-        menu.addItem(.separator())
-        menu.addItem(dimItem)
         menu.addItem(.separator())
         menu.addItem(launchAtLoginItem)
         menu.addItem(.separator())
@@ -126,15 +115,6 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         guard let bundleID = NSWorkspace.shared.frontmostApplication?.bundleIdentifier else { return }
         toggleAppExclusion(bundleID)
         focusWatcher?.updateCurrentHighlight()
-    }
-
-    @objc private func toggleDimUnfocused(_ sender: NSMenuItem) {
-        HighlightWindow.dimEnabled.toggle()
-        sender.state = HighlightWindow.dimEnabled ? .on : .off
-        UserDefaults.standard.set(HighlightWindow.dimEnabled, forKey: "dimUnfocused")
-        if !HighlightWindow.dimEnabled {
-            focusWatcher?.hideDimHighlight()
-        }
     }
 
     func menuWillOpen(_ menu: NSMenu) {
