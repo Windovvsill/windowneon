@@ -2,7 +2,7 @@
 
 Draws a border around the focused window on macOS.
 
-![Demo](docs/windowneon.mov)
+![Demo](docs/windowneon.gif)
 
 ## Requirements
 

@@ -2,5 +2,6 @@
 *.o
 *.d
 windowneon.app/
+docs/*.mov
 .claude/
 .DS_Store
