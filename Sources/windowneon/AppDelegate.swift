@@ -1,5 +1,6 @@
 import AppKit
 import ApplicationServices
+import ServiceManagement
 
 class AppDelegate: NSObject, NSApplicationDelegate {
     private var statusItem: NSStatusItem!
@@ -40,9 +41,14 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         let widthItem = NSMenuItem(title: "Border Width", action: nil, keyEquivalent: "")
         widthItem.submenu = widthSubmenu
 
+        let launchAtLoginItem = NSMenuItem(title: "Launch at Login", action: #selector(toggleLaunchAtLogin(_:)), keyEquivalent: "")
+        launchAtLoginItem.state = (SMAppService.mainApp.status == .enabled) ? .on : .off
+
         let menu = NSMenu()
         menu.addItem(NSMenuItem(title: "Border Color…", action: #selector(showColorPicker), keyEquivalent: ""))
         menu.addItem(widthItem)
+        menu.addItem(.separator())
+        menu.addItem(launchAtLoginItem)
         menu.addItem(.separator())
         menu.addItem(NSMenuItem(title: "Quit Windowneon", action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q"))
         statusItem.menu = menu
@@ -55,6 +61,20 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         UserDefaults.standard.set(Double(width), forKey: "borderWidth")
         // Update checkmarks
         sender.menu?.items.forEach { $0.state = $0 == sender ? .on : .off }
+    }
+
+    @objc private func toggleLaunchAtLogin(_ sender: NSMenuItem) {
+        do {
+            if SMAppService.mainApp.status == .enabled {
+                try SMAppService.mainApp.unregister()
+                sender.state = .off
+            } else {
+                try SMAppService.mainApp.register()
+                sender.state = .on
+            }
+        } catch {
+            NSAlert(error: error).runModal()
+        }
     }
 
     @objc private func showColorPicker() {

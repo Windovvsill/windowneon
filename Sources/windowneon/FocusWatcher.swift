@@ -1,20 +1,6 @@
 import AppKit
 import ApplicationServices
 
-private let logFile = "/tmp/bordr.log"
-private func log(_ msg: String) {
-    let line = "\(msg)\n"
-    if let data = line.data(using: .utf8) {
-        if FileManager.default.fileExists(atPath: logFile) {
-            let fh = FileHandle(forWritingAtPath: logFile)
-            fh?.seekToEndOfFile()
-            fh?.write(data)
-            fh?.closeFile()
-        } else {
-            try? data.write(to: URL(fileURLWithPath: logFile))
-        }
-    }
-}
 
 class FocusWatcher {
     private let highlight = HighlightWindow()
@@ -107,18 +93,25 @@ class FocusWatcher {
     private func queryAndSwitchFocusedWindow(appElement: AXUIElement) {
         var value: CFTypeRef?
         let focusResult = AXUIElementCopyAttributeValue(appElement, kAXFocusedWindowAttribute as CFString, &value)
-        log("kAXFocusedWindowAttribute result: \(focusResult.rawValue), value: \(value != nil ? "found" : "nil")")
         if focusResult != .success || value == nil {
-            let mainResult = AXUIElementCopyAttributeValue(appElement, kAXMainWindowAttribute as CFString, &value)
-            log("kAXMainWindowAttribute result: \(mainResult.rawValue), value: \(value != nil ? "found" : "nil")")
+            AXUIElementCopyAttributeValue(appElement, kAXMainWindowAttribute as CFString, &value)
         }
         guard let windowElement = value else { return }
         // swiftlint:disable:next force_cast
         switchToWindow(windowElement as! AXUIElement)
     }
 
+    private func isFullScreen(_ windowElement: AXUIElement) -> Bool {
+        var value: CFTypeRef?
+        guard AXUIElementCopyAttributeValue(windowElement, "AXFullScreen" as CFString, &value) == .success,
+              let boolRef = value,
+              CFGetTypeID(boolRef) == CFBooleanGetTypeID() else { return false }
+        return CFBooleanGetValue((boolRef as! CFBoolean))
+    }
+
     private func updateHighlight(for windowElement: AXUIElement) {
         guard !isDragging else { return }
+        guard !isFullScreen(windowElement) else { highlight.hide(); return }
         var value: CFTypeRef?
         guard AXUIElementCopyAttributeValue(windowElement, "AXFrame" as CFString, &value) == .success,
               let axValue = value,
@@ -145,7 +138,6 @@ class FocusWatcher {
     // MARK: - Callback dispatch
 
     func handleNotification(element: AXUIElement, notification: CFString) {
-        log("notification: \(notification)")
         switch notification as String {
         case kAXFocusedWindowChangedNotification, kAXMainWindowChangedNotification:
             updateFocusedWindow(appElement: element)

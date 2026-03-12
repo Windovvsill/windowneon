@@ -15,4 +15,11 @@ cd windowneon
 swift run
 ```
 
+## Build a release app
+
+```bash
+make app
+open windowneon.app
+```
+
 Grant Accessibility permission when prompted. A `◻` menu bar icon appears — use it to change border color, width, or quit.
