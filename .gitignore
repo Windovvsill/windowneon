@@ -2,3 +2,4 @@
 *.o
 *.d
 windowneon.app/
+.claude/

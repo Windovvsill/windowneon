@@ -40,7 +40,7 @@ class FocusWatcher {
         watchedPID = pid
 
         let bundleID = NSRunningApplication(processIdentifier: pid)?.bundleIdentifier ?? ""
-        HighlightWindow.cornerRadius = cornerRadiusOverrides[bundleID] ?? defaultCornerRadius
+        HighlightWindow.cornerRadius = cornerRadius(for: bundleID)
 
         let appElement = AXUIElementCreateApplication(pid)
         var obs: AXObserver?

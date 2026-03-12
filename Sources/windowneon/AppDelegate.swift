@@ -2,7 +2,7 @@ import AppKit
 import ApplicationServices
 import ServiceManagement
 
-class AppDelegate: NSObject, NSApplicationDelegate {
+class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     private var statusItem: NSStatusItem!
     private var focusWatcher: FocusWatcher?
 
@@ -44,9 +44,13 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         let launchAtLoginItem = NSMenuItem(title: "Launch at Login", action: #selector(toggleLaunchAtLogin(_:)), keyEquivalent: "")
         launchAtLoginItem.state = (SMAppService.mainApp.status == .enabled) ? .on : .off
 
+        let radiusItem = NSMenuItem(title: "Set Corner Radius…", action: #selector(setCornerRadiusForCurrentApp), keyEquivalent: "")
+
         let menu = NSMenu()
+        menu.delegate = self
         menu.addItem(NSMenuItem(title: "Border Color…", action: #selector(showColorPicker), keyEquivalent: ""))
         menu.addItem(widthItem)
+        menu.addItem(radiusItem)
         menu.addItem(.separator())
         menu.addItem(launchAtLoginItem)
         menu.addItem(.separator())
@@ -61,6 +65,39 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         UserDefaults.standard.set(Double(width), forKey: "borderWidth")
         // Update checkmarks
         sender.menu?.items.forEach { $0.state = $0 == sender ? .on : .off }
+    }
+
+    func menuWillOpen(_ menu: NSMenu) {
+        let appName = NSWorkspace.shared.frontmostApplication?.localizedName ?? "This App"
+        menu.item(withTitle: "Set Corner Radius…")?.title = "Set Corner Radius for \(appName)…"
+    }
+
+    private var radiusPanel: CornerRadiusPanel?
+
+    @objc private func setCornerRadiusForCurrentApp() {
+        guard let app = NSWorkspace.shared.frontmostApplication,
+              let bundleID = app.bundleIdentifier else { return }
+
+        let current = cornerRadius(for: bundleID)
+
+        radiusPanel = CornerRadiusPanel(
+            appName: app.localizedName ?? bundleID,
+            bundleID: bundleID,
+            currentRadius: current,
+            onUpdate: { [weak self] _ in
+                self?.focusWatcher?.redrawBorder()
+            },
+            onSave: { [weak self] radius in
+                setCornerRadius(radius, for: bundleID)
+                HighlightWindow.cornerRadius = radius
+                self?.focusWatcher?.redrawBorder()
+            },
+            onCancel: { [weak self] in
+                HighlightWindow.cornerRadius = current
+                self?.focusWatcher?.redrawBorder()
+            }
+        )
+        radiusPanel?.makeKeyAndOrderFront(nil)
     }
 
     @objc private func toggleLaunchAtLogin(_ sender: NSMenuItem) {

@@ -1,4 +1,5 @@
 import CoreGraphics
+import Foundation
 
 // Corner radius overrides by bundle ID.
 // Default (no entry) = 9pt, which matches standard macOS windows.
@@ -45,3 +46,16 @@ let cornerRadiusOverrides: [String: CGFloat] = [
 ]
 
 let defaultCornerRadius: CGFloat = 9
+
+func cornerRadius(for bundleID: String) -> CGFloat {
+    let userOverrides = UserDefaults.standard.dictionary(forKey: "cornerRadiusOverrides") as? [String: Double] ?? [:]
+    if let r = userOverrides[bundleID] { return CGFloat(r) }
+    if let r = cornerRadiusOverrides[bundleID] { return r }
+    return defaultCornerRadius
+}
+
+func setCornerRadius(_ radius: CGFloat, for bundleID: String) {
+    var overrides = UserDefaults.standard.dictionary(forKey: "cornerRadiusOverrides") as? [String: Double] ?? [:]
+    overrides[bundleID] = Double(radius)
+    UserDefaults.standard.set(overrides, forKey: "cornerRadiusOverrides")
+}
