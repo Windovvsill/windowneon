@@ -1,16 +1,24 @@
 import AppKit
 
 class HighlightWindow: NSWindow {
+    /// Persistent global default (set by the user via the "Border Width" menu).
+    static var globalBorderWidth: CGFloat = 3.0
+    /// Active width for the currently focused window (may be a per-app override).
     static var borderWidth: CGFloat = 3.0
     static var borderColor: NSColor = .systemBlue
     static var cornerRadius: CGFloat = defaultCornerRadius
+    static var dimEnabled: Bool = false
+
+    /// Instance-level overrides used by the dim highlight window.
+    var overrideColor: NSColor?
+    var overrideCornerRadius: CGFloat?
 
     convenience init() {
         self.init(contentRect: .zero, styleMask: [.borderless], backing: .buffered, defer: true)
         isOpaque = false
         backgroundColor = .clear
         ignoresMouseEvents = true
-        level = .floating             // above normal windows, below system UI
+        level = .floating
         collectionBehavior = [.canJoinAllSpaces, .stationary, .ignoresCycle]
         isReleasedWhenClosed = false
         contentView = BorderView()
@@ -33,11 +41,14 @@ class HighlightWindow: NSWindow {
 
 private class BorderView: NSView {
     override func draw(_ dirtyRect: NSRect) {
-        let inset = HighlightWindow.borderWidth / 2
-        let radius = HighlightWindow.cornerRadius
+        let win = self.window as? HighlightWindow
+        let color = win?.overrideColor ?? HighlightWindow.borderColor
+        let radius = win?.overrideCornerRadius ?? HighlightWindow.cornerRadius
+        let width = HighlightWindow.borderWidth
+        let inset = width / 2
         let path = NSBezierPath(roundedRect: bounds.insetBy(dx: inset, dy: inset), xRadius: radius, yRadius: radius)
-        path.lineWidth = HighlightWindow.borderWidth
-        HighlightWindow.borderColor.setStroke()
+        path.lineWidth = width
+        color.setStroke()
         path.stroke()
     }
 }

@@ -4,6 +4,13 @@ import ApplicationServices
 
 class FocusWatcher {
     private let highlight = HighlightWindow()
+    /// Second overlay shown at reduced opacity on the previously focused window.
+    private let dimHighlight: HighlightWindow = {
+        let w = HighlightWindow()
+        w.alphaValue = 0.28
+        return w
+    }()
+
     private var appObserver: AXObserver?
     private var windowObserver: AXObserver?
     private var watchedPID: pid_t = 0
@@ -11,6 +18,9 @@ class FocusWatcher {
     private var eventTap: CFMachPort?
     private var eventTapSource: CFRunLoopSource?
     private var isDragging = false
+
+    /// Frame of the most recently shown focused border (updated on every move/resize).
+    private var lastKnownFrame: CGRect?
 
     func start() {
         setupEventTap()
@@ -36,6 +46,11 @@ class FocusWatcher {
     // MARK: - App-level switching
 
     private func switchToApp(pid: pid_t) {
+        // Capture current state before switching (used by dim highlight).
+        let prevColor = HighlightWindow.borderColor
+        let prevRadius = HighlightWindow.cornerRadius
+        let prevFrame = lastKnownFrame
+
         teardownObserver(&appObserver)
         teardownObserver(&windowObserver)
         watchedWindow = nil
@@ -44,6 +59,16 @@ class FocusWatcher {
         let bundleID = NSRunningApplication(processIdentifier: pid)?.bundleIdentifier ?? ""
         HighlightWindow.cornerRadius = cornerRadius(for: bundleID)
         HighlightWindow.borderColor = resolvedColor(for: bundleID)
+        HighlightWindow.borderWidth = effectiveBorderWidth(for: bundleID)
+
+        // Show dim border on the previous window when dim mode is on.
+        if HighlightWindow.dimEnabled, let frame = prevFrame {
+            dimHighlight.overrideColor = prevColor
+            dimHighlight.overrideCornerRadius = prevRadius
+            dimHighlight.show(frame: frame)
+        } else {
+            dimHighlight.hide()
+        }
 
         let appElement = AXUIElementCreateApplication(pid)
         var obs: AXObserver?
@@ -116,6 +141,11 @@ class FocusWatcher {
     private func updateHighlight(for windowElement: AXUIElement) {
         guard !isDragging else { return }
         guard !isFullScreen(windowElement) else { highlight.hide(); return }
+
+        // Hide the border for excluded apps.
+        let bundleID = NSRunningApplication(processIdentifier: watchedPID)?.bundleIdentifier ?? ""
+        if isAppExcluded(bundleID) { highlight.hide(); return }
+
         var value: CFTypeRef?
         guard AXUIElementCopyAttributeValue(windowElement, "AXFrame" as CFString, &value) == .success,
               let axValue = value,
@@ -136,6 +166,7 @@ class FocusWatcher {
             width: frame.width,
             height: frame.height
         )
+        lastKnownFrame = cocoaFrame
         highlight.show(frame: cocoaFrame)
     }
 
@@ -180,6 +211,16 @@ class FocusWatcher {
 
     func redrawBorder() {
         highlight.redrawBorder()
+    }
+
+    /// Re-evaluate the highlight for the current window — call after toggling exclusion or dim.
+    func updateCurrentHighlight() {
+        guard let win = watchedWindow else { return }
+        updateHighlight(for: win)
+    }
+
+    func hideDimHighlight() {
+        dimHighlight.hide()
     }
 
     func handleMouseDrag() {

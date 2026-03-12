@@ -8,6 +8,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         loadSavedWidth()
+        loadSavedDimEnabled()
         setupStatusItem()
         requestAccessibilityAndStart()
     }
@@ -16,7 +17,14 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
 
     private func loadSavedWidth() {
         let saved = UserDefaults.standard.double(forKey: "borderWidth")
-        if saved > 0 { HighlightWindow.borderWidth = saved }
+        if saved > 0 {
+            HighlightWindow.globalBorderWidth = saved
+            HighlightWindow.borderWidth = saved
+        }
+    }
+
+    private func loadSavedDimEnabled() {
+        HighlightWindow.dimEnabled = UserDefaults.standard.bool(forKey: "dimUnfocused")
     }
 
     private func setupStatusItem() {
@@ -27,15 +35,32 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         statusItem.button?.image = icon
         statusItem.button?.imageScaling = .scaleProportionallyDown
 
+        // Global border width submenu
         let widthSubmenu = NSMenu()
         for w in Self.widths {
             let item = NSMenuItem(title: "\(Int(w)) pt", action: #selector(setWidth(_:)), keyEquivalent: "")
             item.tag = Int(w)
-            item.state = w == HighlightWindow.borderWidth ? .on : .off
+            item.state = w == HighlightWindow.globalBorderWidth ? .on : .off
             widthSubmenu.addItem(item)
         }
         let widthItem = NSMenuItem(title: "Border Width", action: nil, keyEquivalent: "")
+        widthItem.tag = 1000
         widthItem.submenu = widthSubmenu
+
+        // Per-app border width submenu
+        let perAppWidthSubmenu = NSMenu()
+        let resetWidthItem = NSMenuItem(title: "Use Global Default", action: #selector(resetWidthForCurrentApp), keyEquivalent: "")
+        resetWidthItem.tag = 0
+        perAppWidthSubmenu.addItem(resetWidthItem)
+        perAppWidthSubmenu.addItem(.separator())
+        for w in Self.widths {
+            let item = NSMenuItem(title: "\(Int(w)) pt", action: #selector(setWidthForCurrentApp(_:)), keyEquivalent: "")
+            item.tag = Int(w)
+            perAppWidthSubmenu.addItem(item)
+        }
+        let perAppWidthItem = NSMenuItem(title: "Set Width for App…", action: nil, keyEquivalent: "")
+        perAppWidthItem.tag = 1003
+        perAppWidthItem.submenu = perAppWidthSubmenu
 
         let launchAtLoginItem = NSMenuItem(title: "Launch at Login", action: #selector(toggleLaunchAtLogin(_:)), keyEquivalent: "")
         launchAtLoginItem.state = (SMAppService.mainApp.status == .enabled) ? .on : .off
@@ -45,11 +70,22 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         let colorItem = NSMenuItem(title: "Set Border Color…", action: #selector(setColorForCurrentApp), keyEquivalent: "")
         colorItem.tag = 1002
 
+        let excludeItem = NSMenuItem(title: "Exclude App from Border", action: #selector(toggleExcludeCurrentApp), keyEquivalent: "")
+        excludeItem.tag = 1004
+
+        let dimItem = NSMenuItem(title: "Dim Unfocused Windows", action: #selector(toggleDimUnfocused(_:)), keyEquivalent: "")
+        dimItem.tag = 1005
+        dimItem.state = HighlightWindow.dimEnabled ? .on : .off
+
         let menu = NSMenu()
         menu.delegate = self
         menu.addItem(widthItem)
+        menu.addItem(perAppWidthItem)
         menu.addItem(radiusItem)
         menu.addItem(colorItem)
+        menu.addItem(excludeItem)
+        menu.addItem(.separator())
+        menu.addItem(dimItem)
         menu.addItem(.separator())
         menu.addItem(launchAtLoginItem)
         menu.addItem(.separator())
@@ -59,17 +95,82 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
 
     @objc private func setWidth(_ sender: NSMenuItem) {
         let width = CGFloat(sender.tag)
-        HighlightWindow.borderWidth = width
-        focusWatcher?.redrawBorder()
+        HighlightWindow.globalBorderWidth = width
+        // Only update the active width if the current app has no per-app override.
+        let bundleID = NSWorkspace.shared.frontmostApplication?.bundleIdentifier ?? ""
+        let overrides = UserDefaults.standard.dictionary(forKey: "borderWidthOverrides") as? [String: Double] ?? [:]
+        if overrides[bundleID] == nil {
+            HighlightWindow.borderWidth = width
+            focusWatcher?.redrawBorder()
+        }
         UserDefaults.standard.set(Double(width), forKey: "borderWidth")
-        // Update checkmarks
         sender.menu?.items.forEach { $0.state = $0 == sender ? .on : .off }
     }
 
+    @objc private func setWidthForCurrentApp(_ sender: NSMenuItem) {
+        guard let bundleID = NSWorkspace.shared.frontmostApplication?.bundleIdentifier else { return }
+        let width = CGFloat(sender.tag)
+        setBorderWidthOverride(width, for: bundleID)
+        HighlightWindow.borderWidth = width
+        focusWatcher?.redrawBorder()
+    }
+
+    @objc private func resetWidthForCurrentApp() {
+        guard let bundleID = NSWorkspace.shared.frontmostApplication?.bundleIdentifier else { return }
+        removeBorderWidthOverride(for: bundleID)
+        HighlightWindow.borderWidth = HighlightWindow.globalBorderWidth
+        focusWatcher?.redrawBorder()
+    }
+
+    @objc private func toggleExcludeCurrentApp() {
+        guard let bundleID = NSWorkspace.shared.frontmostApplication?.bundleIdentifier else { return }
+        toggleAppExclusion(bundleID)
+        focusWatcher?.updateCurrentHighlight()
+    }
+
+    @objc private func toggleDimUnfocused(_ sender: NSMenuItem) {
+        HighlightWindow.dimEnabled.toggle()
+        sender.state = HighlightWindow.dimEnabled ? .on : .off
+        UserDefaults.standard.set(HighlightWindow.dimEnabled, forKey: "dimUnfocused")
+        if !HighlightWindow.dimEnabled {
+            focusWatcher?.hideDimHighlight()
+        }
+    }
+
     func menuWillOpen(_ menu: NSMenu) {
-        let appName = NSWorkspace.shared.frontmostApplication?.localizedName ?? "This App"
+        let app = NSWorkspace.shared.frontmostApplication
+        let appName = app?.localizedName ?? "This App"
+        let bundleID = app?.bundleIdentifier ?? ""
+
         menu.item(withTag: 1001)?.title = "Set Corner Radius for \(appName)…"
         menu.item(withTag: 1002)?.title = "Set Border Color for \(appName)…"
+        menu.item(withTag: 1003)?.title = "Set Width for \(appName)…"
+
+        // Exclusion toggle label and state
+        let excluded = isAppExcluded(bundleID)
+        menu.item(withTag: 1004)?.title = excluded
+            ? "Include \(appName) in Border"
+            : "Exclude \(appName) from Border"
+
+        // Per-app width submenu checkmarks
+        if let submenu = menu.item(withTag: 1003)?.submenu {
+            let overrides = UserDefaults.standard.dictionary(forKey: "borderWidthOverrides") as? [String: Double] ?? [:]
+            let currentOverride = overrides[bundleID]
+            for item in submenu.items {
+                guard item.tag != 0 else {
+                    item.state = currentOverride == nil ? .on : .off
+                    continue
+                }
+                item.state = currentOverride.map { CGFloat($0) } == CGFloat(item.tag) ? .on : .off
+            }
+        }
+
+        // Global width submenu checkmarks
+        if let submenu = menu.item(withTag: 1000)?.submenu {
+            for item in submenu.items {
+                item.state = CGFloat(item.tag) == HighlightWindow.globalBorderWidth ? .on : .off
+            }
+        }
     }
 
     private var radiusPanel: CornerRadiusPanel?
