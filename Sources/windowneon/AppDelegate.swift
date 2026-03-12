@@ -21,7 +21,11 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
 
     private func setupStatusItem() {
         statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.squareLength)
-        statusItem.button?.title = "◻"
+        let config = NSImage.SymbolConfiguration(paletteColors: [.systemMint, .systemPurple])
+        let icon = NSImage(systemSymbolName: "inset.filled.square", accessibilityDescription: "Windowneon")?
+            .withSymbolConfiguration(config)
+        statusItem.button?.image = icon
+        statusItem.button?.imageScaling = .scaleProportionallyDown
 
         let widthSubmenu = NSMenu()
         for w in Self.widths {
