@@ -7,20 +7,12 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     private var focusWatcher: FocusWatcher?
 
     func applicationDidFinishLaunching(_ notification: Notification) {
-        loadSavedColor()
         loadSavedWidth()
         setupStatusItem()
         requestAccessibilityAndStart()
     }
 
     private static let widths: [CGFloat] = [1, 2, 3, 4, 6, 8, 10]
-
-    private func loadSavedColor() {
-        guard let data = UserDefaults.standard.data(forKey: "borderColor"),
-              let color = try? NSKeyedUnarchiver.unarchivedObject(ofClass: NSColor.self, from: data)
-        else { return }
-        HighlightWindow.borderColor = color
-    }
 
     private func loadSavedWidth() {
         let saved = UserDefaults.standard.double(forKey: "borderWidth")
@@ -45,12 +37,15 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         launchAtLoginItem.state = (SMAppService.mainApp.status == .enabled) ? .on : .off
 
         let radiusItem = NSMenuItem(title: "Set Corner Radius…", action: #selector(setCornerRadiusForCurrentApp), keyEquivalent: "")
+        radiusItem.tag = 1001
+        let colorItem = NSMenuItem(title: "Set Border Color…", action: #selector(setColorForCurrentApp), keyEquivalent: "")
+        colorItem.tag = 1002
 
         let menu = NSMenu()
         menu.delegate = self
-        menu.addItem(NSMenuItem(title: "Border Color…", action: #selector(showColorPicker), keyEquivalent: ""))
         menu.addItem(widthItem)
         menu.addItem(radiusItem)
+        menu.addItem(colorItem)
         menu.addItem(.separator())
         menu.addItem(launchAtLoginItem)
         menu.addItem(.separator())
@@ -69,10 +64,13 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
 
     func menuWillOpen(_ menu: NSMenu) {
         let appName = NSWorkspace.shared.frontmostApplication?.localizedName ?? "This App"
-        menu.item(withTitle: "Set Corner Radius…")?.title = "Set Corner Radius for \(appName)…"
+        menu.item(withTag: 1001)?.title = "Set Corner Radius for \(appName)…"
+        menu.item(withTag: 1002)?.title = "Set Border Color for \(appName)…"
     }
 
     private var radiusPanel: CornerRadiusPanel?
+    private var colorPickerBundleID: String?
+    private var colorPickerOriginal: NSColor?
 
     @objc private func setCornerRadiusForCurrentApp() {
         guard let app = NSWorkspace.shared.frontmostApplication,
@@ -100,6 +98,29 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         radiusPanel?.makeKeyAndOrderFront(nil)
     }
 
+    @objc private func setColorForCurrentApp() {
+        guard let app = NSWorkspace.shared.frontmostApplication,
+              let bundleID = app.bundleIdentifier else { return }
+
+        colorPickerBundleID = bundleID
+        colorPickerOriginal = resolvedColor(for: bundleID)
+
+        let panel = NSColorPanel.shared
+        panel.color = colorPickerOriginal!
+        panel.setTarget(self)
+        panel.setAction(#selector(appColorDidChange(_:)))
+        panel.isContinuous = true
+        NSApp.activate(ignoringOtherApps: true)
+        panel.makeKeyAndOrderFront(nil)
+    }
+
+    @objc private func appColorDidChange(_ sender: NSColorPanel) {
+        guard let bundleID = colorPickerBundleID else { return }
+        HighlightWindow.borderColor = sender.color
+        focusWatcher?.redrawBorder()
+        setAppColor(sender.color, for: bundleID)
+    }
+
     @objc private func toggleLaunchAtLogin(_ sender: NSMenuItem) {
         do {
             if SMAppService.mainApp.status == .enabled {
@@ -111,24 +132,6 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             }
         } catch {
             NSAlert(error: error).runModal()
-        }
-    }
-
-    @objc private func showColorPicker() {
-        let panel = NSColorPanel.shared
-        panel.color = HighlightWindow.borderColor
-        panel.setTarget(self)
-        panel.setAction(#selector(colorDidChange(_:)))
-        panel.isContinuous = true
-        NSApp.activate(ignoringOtherApps: true)
-        panel.makeKeyAndOrderFront(nil)
-    }
-
-    @objc private func colorDidChange(_ sender: NSColorPanel) {
-        HighlightWindow.borderColor = sender.color
-        focusWatcher?.redrawBorder()
-        if let data = try? NSKeyedArchiver.archivedData(withRootObject: sender.color, requiringSecureCoding: false) {
-            UserDefaults.standard.set(data, forKey: "borderColor")
         }
     }
 

@@ -28,6 +28,8 @@ class FocusWatcher {
 
     @objc private func appActivated(_ note: Notification) {
         guard let app = note.userInfo?[NSWorkspace.applicationUserInfoKey] as? NSRunningApplication else { return }
+        // Ignore our own activation (color picker, radius panel, etc.)
+        guard app.processIdentifier != ProcessInfo.processInfo.processIdentifier else { return }
         switchToApp(pid: app.processIdentifier)
     }
 
@@ -41,6 +43,7 @@ class FocusWatcher {
 
         let bundleID = NSRunningApplication(processIdentifier: pid)?.bundleIdentifier ?? ""
         HighlightWindow.cornerRadius = cornerRadius(for: bundleID)
+        HighlightWindow.borderColor = resolvedColor(for: bundleID)
 
         let appElement = AXUIElementCreateApplication(pid)
         var obs: AXObserver?

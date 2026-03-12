@@ -3,3 +3,4 @@
 *.d
 windowneon.app/
 .claude/
+.DS_Store
