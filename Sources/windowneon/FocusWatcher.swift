@@ -73,6 +73,7 @@ class FocusWatcher {
         AXObserverAddNotification(obs, windowElement, kAXWindowMovedNotification as CFString, selfPtr)
         AXObserverAddNotification(obs, windowElement, kAXWindowResizedNotification as CFString, selfPtr)
         AXObserverAddNotification(obs, windowElement, kAXUIElementDestroyedNotification as CFString, selfPtr)
+        AXObserverAddNotification(obs, windowElement, kAXWindowMiniaturizedNotification as CFString, selfPtr)
         CFRunLoopAddSource(CFRunLoopGetMain(), AXObserverGetRunLoopSource(obs), .defaultMode)
         windowObserver = obs
 
@@ -149,7 +150,7 @@ class FocusWatcher {
             updateFocusedWindow(appElement: AXUIElementCreateApplication(watchedPID))
         case kAXWindowMovedNotification, kAXWindowResizedNotification:
             updateHighlight(for: element)
-        case kAXUIElementDestroyedNotification:
+        case kAXUIElementDestroyedNotification, kAXWindowMiniaturizedNotification:
             highlight.hide()
         default:
             break
