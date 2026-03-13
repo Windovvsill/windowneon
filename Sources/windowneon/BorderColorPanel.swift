@@ -30,7 +30,7 @@ class BorderColorPanel: NSPanel {
 
         isFloatingPanel = true
         level = .floating
-        title = "Border Color — \(appName)"
+        title = "Border color — \(appName)"
         isReleasedWhenClosed = false
 
         let container = NSView(frame: NSRect(x: 0, y: 0, width: 300, height: 170))

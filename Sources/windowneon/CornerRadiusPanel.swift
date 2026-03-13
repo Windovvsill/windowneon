@@ -25,7 +25,7 @@ class CornerRadiusPanel: NSPanel, NSWindowDelegate {
             defer: false
         )
 
-        title = "Corner Radius – \(appName)"
+        title = "Corner radius – \(appName)"
         level = .floating
         isReleasedWhenClosed = false
         delegate = self

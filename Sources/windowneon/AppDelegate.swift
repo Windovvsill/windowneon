@@ -8,6 +8,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         loadSavedWidth()
+        HighlightWindow.ticksEnabled = UserDefaults.standard.object(forKey: "ticksEnabled") as? Bool ?? true
         setupStatusItem()
         requestAccessibilityAndStart()
     }
@@ -38,13 +39,13 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             item.state = w == HighlightWindow.globalBorderWidth ? .on : .off
             widthSubmenu.addItem(item)
         }
-        let widthItem = NSMenuItem(title: "Border Width", action: nil, keyEquivalent: "")
+        let widthItem = NSMenuItem(title: "Border width", action: nil, keyEquivalent: "")
         widthItem.tag = 1000
         widthItem.submenu = widthSubmenu
 
         // Per-app border width submenu
         let perAppWidthSubmenu = NSMenu()
-        let resetWidthItem = NSMenuItem(title: "Use Global Default", action: #selector(resetWidthForCurrentApp), keyEquivalent: "")
+        let resetWidthItem = NSMenuItem(title: "Use global default", action: #selector(resetWidthForCurrentApp), keyEquivalent: "")
         resetWidthItem.tag = 0
         perAppWidthSubmenu.addItem(resetWidthItem)
         perAppWidthSubmenu.addItem(.separator())
@@ -57,16 +58,20 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         perAppWidthItem.tag = 1003
         perAppWidthItem.submenu = perAppWidthSubmenu
 
-        let launchAtLoginItem = NSMenuItem(title: "Launch at Login", action: #selector(toggleLaunchAtLogin(_:)), keyEquivalent: "")
+        let launchAtLoginItem = NSMenuItem(title: "Launch at login", action: #selector(toggleLaunchAtLogin(_:)), keyEquivalent: "")
         launchAtLoginItem.state = (SMAppService.mainApp.status == .enabled) ? .on : .off
 
-        let radiusItem = NSMenuItem(title: "Set Corner Radius…", action: #selector(setCornerRadiusForCurrentApp), keyEquivalent: "")
+        let radiusItem = NSMenuItem(title: "Set corner radius…", action: #selector(setCornerRadiusForCurrentApp), keyEquivalent: "")
         radiusItem.tag = 1001
-        let colorItem = NSMenuItem(title: "Set Border Color…", action: #selector(setColorForCurrentApp), keyEquivalent: "")
+        let colorItem = NSMenuItem(title: "Set border color…", action: #selector(setColorForCurrentApp), keyEquivalent: "")
         colorItem.tag = 1002
 
-        let excludeItem = NSMenuItem(title: "Exclude App from Border", action: #selector(toggleExcludeCurrentApp), keyEquivalent: "")
+        let excludeItem = NSMenuItem(title: "Exclude app from border", action: #selector(toggleExcludeCurrentApp), keyEquivalent: "")
         excludeItem.tag = 1004
+
+        let ticksItem = NSMenuItem(title: "Show edge ticks", action: #selector(toggleTicks(_:)), keyEquivalent: "")
+        ticksItem.tag = 1005
+        ticksItem.state = HighlightWindow.ticksEnabled ? .on : .off
 
         let menu = NSMenu()
         menu.delegate = self
@@ -76,9 +81,14 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         menu.addItem(colorItem)
         menu.addItem(excludeItem)
         menu.addItem(.separator())
+        menu.addItem(ticksItem)
+        menu.addItem(.separator())
         menu.addItem(launchAtLoginItem)
         menu.addItem(.separator())
-        menu.addItem(NSMenuItem(title: "Quit Windowneon", action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q"))
+        menu.addItem(NSMenuItem(title: "Export settings…", action: #selector(exportSettings), keyEquivalent: ""))
+        menu.addItem(NSMenuItem(title: "Import settings…", action: #selector(importSettings), keyEquivalent: ""))
+        menu.addItem(.separator())
+        menu.addItem(NSMenuItem(title: "Quit Windowneon", action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q"))  // proper noun
         statusItem.menu = menu
     }
 
@@ -111,6 +121,13 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         focusWatcher?.redrawBorder()
     }
 
+    @objc private func toggleTicks(_ sender: NSMenuItem) {
+        HighlightWindow.ticksEnabled.toggle()
+        sender.state = HighlightWindow.ticksEnabled ? .on : .off
+        UserDefaults.standard.set(HighlightWindow.ticksEnabled, forKey: "ticksEnabled")
+        focusWatcher?.redrawBorder()
+    }
+
     @objc private func toggleExcludeCurrentApp() {
         guard let bundleID = NSWorkspace.shared.frontmostApplication?.bundleIdentifier else { return }
         toggleAppExclusion(bundleID)
@@ -122,15 +139,15 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         let appName = app?.localizedName ?? "This App"
         let bundleID = app?.bundleIdentifier ?? ""
 
-        menu.item(withTag: 1001)?.title = "Set Corner Radius for \(appName)…"
-        menu.item(withTag: 1002)?.title = "Set Border Color for \(appName)…"
-        menu.item(withTag: 1003)?.title = "Set Width for \(appName)…"
+        menu.item(withTag: 1001)?.title = "Set corner radius for \(appName)…"
+        menu.item(withTag: 1002)?.title = "Set border color for \(appName)…"
+        menu.item(withTag: 1003)?.title = "Set width for \(appName)…"
 
         // Exclusion toggle label and state
         let excluded = isAppExcluded(bundleID)
         menu.item(withTag: 1004)?.title = excluded
-            ? "Include \(appName) in Border"
-            : "Exclude \(appName) from Border"
+            ? "Include \(appName) in border"
+            : "Exclude \(appName) from border"
 
         // Per-app width submenu checkmarks
         if let submenu = menu.item(withTag: 1003)?.submenu {
@@ -242,6 +259,38 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             HighlightWindow.borderColor2 = sender.color
         }
         focusWatcher?.redrawBorder()
+    }
+
+    @objc private func exportSettings() {
+        guard let data = try? SettingsPorter.export() else { return }
+        NSApp.activate(ignoringOtherApps: true)
+        let panel = NSSavePanel()
+        panel.nameFieldStringValue = "windowneon-settings.json"
+        panel.allowedContentTypes = [.json]
+        guard panel.runModal() == .OK, let url = panel.url else { return }
+        try? data.write(to: url)
+    }
+
+    @objc private func importSettings() {
+        NSApp.activate(ignoringOtherApps: true)
+        let panel = NSOpenPanel()
+        panel.allowedContentTypes = [.json]
+        panel.allowsMultipleSelection = false
+        guard panel.runModal() == .OK, let url = panel.url,
+              let data = try? Data(contentsOf: url) else { return }
+        do {
+            try SettingsPorter.import(from: data)
+            // Re-apply settings for the current window
+            if let bundleID = NSWorkspace.shared.frontmostApplication?.bundleIdentifier {
+                HighlightWindow.borderColor   = resolvedColor(for: bundleID)
+                HighlightWindow.borderColor2  = resolvedColor2(for: bundleID)
+                HighlightWindow.cornerRadius  = cornerRadius(for: bundleID)
+                HighlightWindow.borderWidth   = effectiveBorderWidth(for: bundleID)
+            }
+            focusWatcher?.redrawBorder()
+        } catch {
+            NSAlert(error: error).runModal()
+        }
     }
 
     @objc private func toggleLaunchAtLogin(_ sender: NSMenuItem) {
