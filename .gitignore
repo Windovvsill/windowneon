@@ -5,5 +5,7 @@ windowneon.app/
 docs/*.mov
 .claude/
 .DS_Store
+*.swp
 README.local.md
 *.cer
+*.mov
