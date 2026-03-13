@@ -209,6 +209,19 @@ class FocusWatcher {
         updateHighlight(for: win)
     }
 
+    func stop() {
+        NSWorkspace.shared.notificationCenter.removeObserver(self)
+        teardownObserver(&appObserver)
+        teardownObserver(&windowObserver)
+        highlight.hide()
+        if let tap = eventTap {
+            CGEvent.tapEnable(tap: tap, enable: false)
+            if let src = eventTapSource {
+                CFRunLoopRemoveSource(CFRunLoopGetMain(), src, .defaultMode)
+            }
+        }
+    }
+
     // MARK: - Helpers
 
     private func teardownObserver(_ obs: inout AXObserver?) {

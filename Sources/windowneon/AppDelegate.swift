@@ -11,6 +11,12 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         HighlightWindow.ticksEnabled = UserDefaults.standard.object(forKey: "ticksEnabled") as? Bool ?? true
         setupStatusItem()
         requestAccessibilityAndStart()
+        DistributedNotificationCenter.default().addObserver(
+            self,
+            selector: #selector(accessibilityChanged),
+            name: NSNotification.Name("com.apple.accessibility.api"),
+            object: nil
+        )
     }
 
     private static let widths: [CGFloat] = [1, 2, 3, 4, 6, 8, 10]
@@ -73,8 +79,22 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         ticksItem.tag = 1005
         ticksItem.state = HighlightWindow.ticksEnabled ? .on : .off
 
+        let accessibilityWarningItem = NSMenuItem(
+            title: "⚠ Accessibility permission required",
+            action: #selector(openAccessibilitySettings),
+            keyEquivalent: ""
+        )
+        accessibilityWarningItem.tag = 9999
+        accessibilityWarningItem.isHidden = true
+
         let menu = NSMenu()
         menu.delegate = self
+        let accessibilityWarningSeparator = NSMenuItem.separator()
+        accessibilityWarningSeparator.tag = 9998
+        accessibilityWarningSeparator.isHidden = true
+
+        menu.addItem(accessibilityWarningItem)
+        menu.addItem(accessibilityWarningSeparator)
         menu.addItem(widthItem)
         menu.addItem(perAppWidthItem)
         menu.addItem(radiusItem)
@@ -325,5 +345,48 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     private func startWatcher() {
         focusWatcher = FocusWatcher()
         focusWatcher?.start()
+    }
+
+    private var accessibilityRecoveryTimer: Timer?
+
+    @objc private func accessibilityChanged() {
+        // The notification fires before AXIsProcessTrusted() reflects the new
+        // state, so wait briefly then evaluate the actual state.
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) { [weak self] in
+            self?.applyAccessibilityState()
+        }
+    }
+
+    private func applyAccessibilityState() {
+        if AXIsProcessTrusted() {
+            accessibilityRecoveryTimer?.invalidate()
+            accessibilityRecoveryTimer = nil
+            setAccessibilityWarning(visible: false)
+            if focusWatcher == nil { startWatcher() }
+        } else {
+            if focusWatcher != nil {
+                focusWatcher?.stop()
+                focusWatcher = nil
+            }
+            setAccessibilityWarning(visible: true)
+            guard accessibilityRecoveryTimer == nil else { return }
+            accessibilityRecoveryTimer = Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true) { [weak self] timer in
+                if AXIsProcessTrusted() {
+                    timer.invalidate()
+                    self?.accessibilityRecoveryTimer = nil
+                    self?.setAccessibilityWarning(visible: false)
+                    self?.startWatcher()
+                }
+            }
+        }
+    }
+
+    private func setAccessibilityWarning(visible: Bool) {
+        statusItem.menu?.item(withTag: 9999)?.isHidden = !visible
+        statusItem.menu?.item(withTag: 9998)?.isHidden = !visible
+    }
+
+    @objc private func openAccessibilitySettings() {
+        NSWorkspace.shared.open(URL(string: "x-apple.systempreferences:root=Privacy_Accessibility")!)
     }
 }
