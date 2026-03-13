@@ -6,6 +6,7 @@ class HighlightWindow: NSWindow {
     /// Active width for the currently focused window (may be a per-app override).
     static var borderWidth: CGFloat = 3.0
     static var borderColor: NSColor = .systemBlue
+    static var borderColor2: NSColor? = nil
     static var cornerRadius: CGFloat = defaultCornerRadius
 
     convenience init() {
@@ -40,9 +41,24 @@ private class BorderView: NSView {
         let radius = HighlightWindow.cornerRadius
         let width = HighlightWindow.borderWidth
         let inset = width / 2
-        let path = NSBezierPath(roundedRect: bounds.insetBy(dx: inset, dy: inset), xRadius: radius, yRadius: radius)
-        path.lineWidth = width
-        color.setStroke()
-        path.stroke()
+
+        if let color2 = HighlightWindow.borderColor2 {
+            NSGraphicsContext.saveGraphicsState()
+            let outer = NSBezierPath(roundedRect: bounds, xRadius: radius + inset, yRadius: radius + inset)
+            let inner = NSBezierPath(
+                roundedRect: bounds.insetBy(dx: width, dy: width),
+                xRadius: max(0, radius - inset), yRadius: max(0, radius - inset)
+            )
+            outer.append(inner)
+            outer.windingRule = .evenOdd
+            outer.addClip()
+            NSGradient(starting: color, ending: color2)?.draw(in: bounds, angle: -45)
+            NSGraphicsContext.restoreGraphicsState()
+        } else {
+            let path = NSBezierPath(roundedRect: bounds.insetBy(dx: inset, dy: inset), xRadius: radius, yRadius: radius)
+            path.lineWidth = width
+            color.setStroke()
+            path.stroke()
+        }
     }
 }

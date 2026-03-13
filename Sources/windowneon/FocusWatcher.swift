@@ -45,6 +45,7 @@ class FocusWatcher {
         let bundleID = NSRunningApplication(processIdentifier: pid)?.bundleIdentifier ?? ""
         HighlightWindow.cornerRadius = cornerRadius(for: bundleID)
         HighlightWindow.borderColor = resolvedColor(for: bundleID)
+        HighlightWindow.borderColor2 = resolvedColor2(for: bundleID)
         HighlightWindow.borderWidth = effectiveBorderWidth(for: bundleID)
 
         let appElement = AXUIElementCreateApplication(pid)

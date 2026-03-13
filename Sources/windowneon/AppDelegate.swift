@@ -154,8 +154,10 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     }
 
     private var radiusPanel: CornerRadiusPanel?
+    private var borderColorPanel: BorderColorPanel?
     private var colorPickerBundleID: String?
-    private var colorPickerOriginal: NSColor?
+    private var colorPickerOriginal: (NSColor, NSColor?)?
+    private var colorPickerSlot = 1
 
     @objc private func setCornerRadiusForCurrentApp() {
         guard let app = NSWorkspace.shared.frontmostApplication,
@@ -188,10 +190,43 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
               let bundleID = app.bundleIdentifier else { return }
 
         colorPickerBundleID = bundleID
-        colorPickerOriginal = resolvedColor(for: bundleID)
+        colorPickerOriginal = (resolvedColor(for: bundleID), resolvedColor2(for: bundleID))
 
+        borderColorPanel = BorderColorPanel(
+            appName: app.localizedName ?? bundleID,
+            color1: colorPickerOriginal!.0,
+            color2: colorPickerOriginal!.1
+        )
+        borderColorPanel?.onRequestPicker = { [weak self] slot in
+            self?.openColorPicker(slot: slot)
+        }
+        borderColorPanel?.onSave = { [weak self] color1, color2 in
+            guard let bundleID = self?.colorPickerBundleID else { return }
+            setAppColor(color1, for: bundleID)
+            setAppColor2(color2, for: bundleID)
+            HighlightWindow.borderColor = color1
+            HighlightWindow.borderColor2 = color2
+            self?.focusWatcher?.redrawBorder()
+            NSColorPanel.shared.orderOut(nil)
+        }
+        borderColorPanel?.onCancel = { [weak self] in
+            if let orig = self?.colorPickerOriginal {
+                HighlightWindow.borderColor = orig.0
+                HighlightWindow.borderColor2 = orig.1
+                self?.focusWatcher?.redrawBorder()
+            }
+            NSColorPanel.shared.orderOut(nil)
+        }
+        borderColorPanel?.makeKeyAndOrderFront(nil)
+    }
+
+    private func openColorPicker(slot: Int) {
+        colorPickerSlot = slot
+        let current = slot == 1
+            ? (borderColorPanel?.color1 ?? colorPickerOriginal?.0 ?? .systemBlue)
+            : (borderColorPanel?.color2 ?? colorPickerOriginal?.1 ?? .systemBlue)
         let panel = NSColorPanel.shared
-        panel.color = colorPickerOriginal!
+        panel.color = current
         panel.setTarget(self)
         panel.setAction(#selector(appColorDidChange(_:)))
         panel.isContinuous = true
@@ -200,10 +235,13 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     }
 
     @objc private func appColorDidChange(_ sender: NSColorPanel) {
-        guard let bundleID = colorPickerBundleID else { return }
-        HighlightWindow.borderColor = sender.color
+        borderColorPanel?.updateColor(sender.color, slot: colorPickerSlot)
+        if colorPickerSlot == 1 {
+            HighlightWindow.borderColor = sender.color
+        } else {
+            HighlightWindow.borderColor2 = sender.color
+        }
         focusWatcher?.redrawBorder()
-        setAppColor(sender.color, for: bundleID)
     }
 
     @objc private func toggleLaunchAtLogin(_ sender: NSMenuItem) {
