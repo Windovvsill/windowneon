@@ -13,6 +13,8 @@ class FocusWatcher {
     private var eventTapSource: CFRunLoopSource?
     private var isDragging = false
 
+    var onColorChange: (() -> Void)?
+
     func start() {
         setupEventTap()
         NSWorkspace.shared.notificationCenter.addObserver(
@@ -47,6 +49,7 @@ class FocusWatcher {
         HighlightWindow.borderColor = resolvedColor(for: bundleID)
         HighlightWindow.borderColor2 = resolvedColor2(for: bundleID)
         HighlightWindow.borderWidth = effectiveBorderWidth(for: bundleID)
+        onColorChange?()
 
         let appElement = AXUIElementCreateApplication(pid)
         var obs: AXObserver?

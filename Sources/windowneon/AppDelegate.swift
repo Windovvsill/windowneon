@@ -32,13 +32,19 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         }
     }
 
-    private func setupStatusItem() {
-        statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.squareLength)
-        let config = NSImage.SymbolConfiguration(paletteColors: [.systemMint, .systemPurple])
+    private func updateStatusIcon() {
+        let color1 = HighlightWindow.borderColor
+        let color2 = HighlightWindow.borderColor2 ?? color1
+        let config = NSImage.SymbolConfiguration(paletteColors: [color1, color2])
         let icon = NSImage(systemSymbolName: "inset.filled.square", accessibilityDescription: "Windowneon")?
             .withSymbolConfiguration(config)
         statusItem.button?.image = icon
+    }
+
+    private func setupStatusItem() {
+        statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.squareLength)
         statusItem.button?.imageScaling = .scaleProportionallyDown
+        updateStatusIcon()
 
         // Global border width submenu
         let widthSubmenu = NSMenu()
@@ -251,6 +257,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             HighlightWindow.borderColor = color1
             HighlightWindow.borderColor2 = color2
             self?.focusWatcher?.redrawBorder()
+            self?.updateStatusIcon()
             NSColorPanel.shared.orderOut(nil)
         }
         borderColorPanel?.onCancel = { [weak self] in
@@ -286,6 +293,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             HighlightWindow.borderColor2 = sender.color
         }
         focusWatcher?.redrawBorder()
+        updateStatusIcon()
     }
 
     @objc private func exportSettings() {
@@ -315,6 +323,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
                 HighlightWindow.borderWidth   = effectiveBorderWidth(for: bundleID)
             }
             focusWatcher?.redrawBorder()
+            updateStatusIcon()
         } catch {
             NSAlert(error: error).runModal()
         }
@@ -351,6 +360,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
 
     private func startWatcher() {
         focusWatcher = FocusWatcher()
+        focusWatcher?.onColorChange = { [weak self] in self?.updateStatusIcon() }
         focusWatcher?.start()
     }
 
