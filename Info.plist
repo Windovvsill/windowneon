@@ -11,9 +11,13 @@
     <key>CFBundleDisplayName</key>
     <string>Windowneon</string>
     <key>CFBundleVersion</key>
-    <string>1</string>
+    <string>1.0.0</string>
     <key>CFBundleShortVersionString</key>
-    <string>1.0</string>
+    <string>1.0.0</string>
+    <key>SUFeedURL</key>
+    <string>https://raw.githubusercontent.com/Windovvsill/windowneon/main/appcast.xml</string>
+    <key>SUPublicEDKey</key>
+    <string>sccXpcBta7R07CitwXNbaEZPJUp6zOY+Kco1yCTYG6w=</string>
     <key>CFBundlePackageType</key>
     <string>APPL</string>
     <key>NSPrincipalClass</key>

@@ -6,6 +6,7 @@ docs/*.mov
 .claude/
 .DS_Store
 *.swp
+releases/
 README.local.md
 *.cer
 *.mov

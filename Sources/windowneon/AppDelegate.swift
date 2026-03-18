@@ -1,12 +1,15 @@
 import AppKit
 import ApplicationServices
 import ServiceManagement
+import Sparkle
 
 class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     private var statusItem: NSStatusItem!
     private var focusWatcher: FocusWatcher?
+    private var updaterController: SPUStandardUpdaterController!
 
     func applicationDidFinishLaunching(_ notification: Notification) {
+        updaterController = SPUStandardUpdaterController(startingUpdater: true, updaterDelegate: nil, userDriverDelegate: nil)
         loadSavedWidth()
         HighlightWindow.ticksEnabled = UserDefaults.standard.object(forKey: "ticksEnabled") as? Bool ?? true
         setupStatusItem()
@@ -107,6 +110,10 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         menu.addItem(.separator())
         menu.addItem(NSMenuItem(title: "Export settings…", action: #selector(exportSettings), keyEquivalent: ""))
         menu.addItem(NSMenuItem(title: "Import settings…", action: #selector(importSettings), keyEquivalent: ""))
+        menu.addItem(.separator())
+        let updateItem = NSMenuItem(title: "Check for updates…", action: #selector(SPUStandardUpdaterController.checkForUpdates(_:)), keyEquivalent: "")
+        updateItem.target = updaterController
+        menu.addItem(updateItem)
         menu.addItem(.separator())
         menu.addItem(NSMenuItem(title: "Quit Windowneon", action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q"))  // proper noun
         statusItem.menu = menu
