@@ -29,7 +29,6 @@ release: notarize
 	$(SPARKLE_BIN)/generate_appcast \
 		--download-url-prefix "https://github.com/Windovvsill/windowneon/releases/download/v$(VERSION)/" \
 		--link "https://github.com/Windovvsill/windowneon" \
-		--title "Windowneon" \
 		$(RELEASES_DIR)
 	cp $(RELEASES_DIR)/appcast.xml appcast.xml
 	git add appcast.xml VERSION
