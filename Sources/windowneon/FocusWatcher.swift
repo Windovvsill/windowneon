@@ -63,7 +63,7 @@ class FocusWatcher {
         appObserver = obs
 
         // Show border for whatever window is already focused in this app
-        updateFocusedWindow(appElement: appElement)
+        updateFocusedWindow()
     }
 
     // MARK: - Window-level switching
@@ -89,26 +89,38 @@ class FocusWatcher {
     // MARK: - Highlight updates
 
     private var pendingWindowUpdate: DispatchWorkItem?
+    private static let retryDelays: [Double] = [0.05, 0.1, 0.3, 0.5, 1.0]
 
-    private func updateFocusedWindow(appElement: AXUIElement) {
+    private func updateFocusedWindow() {
         pendingWindowUpdate?.cancel()
-        let pid = watchedPID  // capture PID, not the element — AX elements from callbacks go stale
-        let work = DispatchWorkItem { [weak self] in
-            self?.queryAndSwitchFocusedWindow(appElement: AXUIElementCreateApplication(pid))
-        }
-        pendingWindowUpdate = work
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.05, execute: work)
+        scheduleWindowQuery(pid: watchedPID, attempt: 0)
     }
 
-    private func queryAndSwitchFocusedWindow(appElement: AXUIElement) {
+    private func scheduleWindowQuery(pid: pid_t, attempt: Int) {
+        guard attempt < Self.retryDelays.count else { return }
+        let work = DispatchWorkItem { [weak self] in
+            guard let self, self.watchedPID == pid else { return }
+            if !self.queryAndSwitchFocusedWindow(pid: pid) {
+                self.scheduleWindowQuery(pid: pid, attempt: attempt + 1)
+            }
+        }
+        pendingWindowUpdate = work
+        DispatchQueue.main.asyncAfter(deadline: .now() + Self.retryDelays[attempt], execute: work)
+    }
+
+    // Returns true if a window was found, false if we should retry.
+    @discardableResult
+    private func queryAndSwitchFocusedWindow(pid: pid_t) -> Bool {
+        let appElement = AXUIElementCreateApplication(pid)
         var value: CFTypeRef?
         let focusResult = AXUIElementCopyAttributeValue(appElement, kAXFocusedWindowAttribute as CFString, &value)
         if focusResult != .success || value == nil {
             AXUIElementCopyAttributeValue(appElement, kAXMainWindowAttribute as CFString, &value)
         }
-        guard let windowElement = value else { return }
+        guard let windowElement = value else { return false }
         // swiftlint:disable:next force_cast
         switchToWindow(windowElement as! AXUIElement)
+        return true
     }
 
     private func isFullScreen(_ windowElement: AXUIElement) -> Bool {
@@ -155,10 +167,9 @@ class FocusWatcher {
     func handleNotification(element: AXUIElement, notification: CFString) {
         switch notification as String {
         case kAXFocusedWindowChangedNotification, kAXMainWindowChangedNotification:
-            updateFocusedWindow(appElement: element)
+            updateFocusedWindow()
         case kAXWindowCreatedNotification:
-            // element is the new window, not the app — rebuild the app element
-            updateFocusedWindow(appElement: AXUIElementCreateApplication(watchedPID))
+            updateFocusedWindow()
         case kAXWindowMovedNotification, kAXWindowResizedNotification:
             updateHighlight(for: element)
         case kAXUIElementDestroyedNotification, kAXWindowMiniaturizedNotification:

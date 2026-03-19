@@ -65,6 +65,15 @@ private class BorderView: NSView {
         if HighlightWindow.ticksEnabled { drawTicks(color: color, color2: HighlightWindow.borderColor2, width: width, inset: inset) }
     }
 
+    // Returns the interpolated gradient color at a point for a -45° gradient (top-left=color1, bottom-right=color2).
+    // t = (x - y + height) / (width + height) projects the point onto the gradient axis.
+    private func gradientColor(at point: CGPoint, from color1: NSColor, to color2: NSColor) -> NSColor? {
+        let range = bounds.width + bounds.height
+        guard range > 0 else { return color1 }
+        let t = max(0, min(1, (point.x - point.y + bounds.height) / range))
+        return color1.blended(withFraction: t, of: color2)
+    }
+
     private func drawTicks(color: NSColor, color2: NSColor?, width: CGFloat, inset: CGFloat) {
         guard let windowFrame = self.window?.frame else { return }
 
@@ -81,16 +90,16 @@ private class BorderView: NSView {
 
         let tickLength = width + 8
         let cx = bounds.midX, cy = bounds.midY
-        let c2 = color2 ?? color
 
-        let candidates: [(Bool, NSColor, CGPoint, CGPoint)] = [
-            (showTop,    color, CGPoint(x: cx, y: bounds.maxY - inset), CGPoint(x: cx, y: bounds.maxY - inset - tickLength)),
-            (showBottom, c2,    CGPoint(x: cx, y: bounds.minY + inset), CGPoint(x: cx, y: bounds.minY + inset + tickLength)),
-            (showLeft,   color, CGPoint(x: bounds.minX + inset, y: cy), CGPoint(x: bounds.minX + inset + tickLength, y: cy)),
-            (showRight,  c2,    CGPoint(x: bounds.maxX - inset, y: cy), CGPoint(x: bounds.maxX - inset - tickLength, y: cy)),
+        let candidates: [(Bool, CGPoint, CGPoint)] = [
+            (showTop,    CGPoint(x: cx, y: bounds.maxY - inset), CGPoint(x: cx, y: bounds.maxY - inset - tickLength)),
+            (showBottom, CGPoint(x: cx, y: bounds.minY + inset), CGPoint(x: cx, y: bounds.minY + inset + tickLength)),
+            (showLeft,   CGPoint(x: bounds.minX + inset, y: cy), CGPoint(x: bounds.minX + inset + tickLength, y: cy)),
+            (showRight,  CGPoint(x: bounds.maxX - inset, y: cy), CGPoint(x: bounds.maxX - inset - tickLength, y: cy)),
         ]
 
-        for (show, tickColor, start, end) in candidates where show {
+        for (show, start, end) in candidates where show {
+            let tickColor = color2.flatMap { gradientColor(at: start, from: color, to: $0) } ?? color
             let path = NSBezierPath()
             path.move(to: start)
             path.line(to: end)

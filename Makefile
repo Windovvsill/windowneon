@@ -39,7 +39,7 @@ notarize: app
 
 release: notarize
 	mkdir -p $(RELEASES_DIR)
-	ditto -c -k --keepParent $(APP) $(RELEASES_DIR)/windowneon-$(VERSION).zip
+	ditto -c -k --keepParent --norsrc $(APP) $(RELEASES_DIR)/windowneon-$(VERSION).zip
 	$(SPARKLE_BIN)/generate_appcast \
 		--download-url-prefix "https://github.com/Windovvsill/windowneon/releases/download/v$(VERSION)/" \
 		--link "https://github.com/Windovvsill/windowneon" \

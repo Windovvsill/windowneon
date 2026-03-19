@@ -9,7 +9,9 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     private var updaterController: SPUStandardUpdaterController!
 
     func applicationDidFinishLaunching(_ notification: Notification) {
+        #if !DEBUG
         updaterController = SPUStandardUpdaterController(startingUpdater: true, updaterDelegate: nil, userDriverDelegate: nil)
+        #endif
         loadSavedWidth()
         HighlightWindow.ticksEnabled = UserDefaults.standard.object(forKey: "ticksEnabled") as? Bool ?? true
         setupStatusItem()
