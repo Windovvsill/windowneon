@@ -9,6 +9,10 @@ class HighlightWindow: NSWindow {
     static var borderColor2: NSColor? = nil
     static var cornerRadius: CGFloat = defaultCornerRadius
     static var ticksEnabled: Bool = true
+    static var globallyEnabled: Bool = true
+    static var borderPlacement: BorderPlacement = .inside
+
+    enum BorderPlacement { case inside, outside }
 
     convenience init() {
         self.init(contentRect: .zero, styleMask: [.borderless], backing: .buffered, defer: true)

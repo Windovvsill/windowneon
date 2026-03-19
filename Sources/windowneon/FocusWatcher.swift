@@ -133,6 +133,7 @@ class FocusWatcher {
 
     private func updateHighlight(for windowElement: AXUIElement) {
         guard !isDragging else { return }
+        guard HighlightWindow.globallyEnabled else { highlight.hide(); return }
         guard !isFullScreen(windowElement) else { highlight.hide(); return }
 
         // Hide the border for excluded apps.
@@ -153,12 +154,16 @@ class FocusWatcher {
 
         // AX coords: y=0 at top of primary screen. Cocoa: y=0 at bottom.
         let screenHeight = NSScreen.screens[0].frame.height
-        let cocoaFrame = CGRect(
+        var cocoaFrame = CGRect(
             x: frame.origin.x,
             y: screenHeight - frame.origin.y - frame.height,
             width: frame.width,
             height: frame.height
         )
+        if HighlightWindow.borderPlacement == .outside {
+            let expansion = HighlightWindow.borderWidth
+            cocoaFrame = cocoaFrame.insetBy(dx: -expansion, dy: -expansion)
+        }
         highlight.show(frame: cocoaFrame)
     }
 

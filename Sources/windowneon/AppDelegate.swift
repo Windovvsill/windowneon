@@ -14,7 +14,11 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         #endif
         loadSavedWidth()
         HighlightWindow.ticksEnabled = UserDefaults.standard.object(forKey: "ticksEnabled") as? Bool ?? true
+        HighlightWindow.globallyEnabled = UserDefaults.standard.object(forKey: "globallyEnabled") as? Bool ?? true
+        let savedOutside = UserDefaults.standard.object(forKey: "borderPlacementOutside") as? Bool ?? false
+        HighlightWindow.borderPlacement = savedOutside ? .outside : .inside
         setupStatusItem()
+        setupGlobalHotkey()
         requestAccessibilityAndStart()
         DistributedNotificationCenter.default().addObserver(
             self,
@@ -35,8 +39,9 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     }
 
     private func updateStatusIcon() {
-        let color1 = HighlightWindow.borderColor
-        let color2 = HighlightWindow.borderColor2 ?? color1
+        let (color1, color2): (NSColor, NSColor) = HighlightWindow.globallyEnabled
+            ? (HighlightWindow.borderColor, HighlightWindow.borderColor2 ?? HighlightWindow.borderColor)
+            : (.tertiaryLabelColor, .tertiaryLabelColor)
         let config = NSImage.SymbolConfiguration(paletteColors: [color1, color2])
         let icon = NSImage(systemSymbolName: "inset.filled.square", accessibilityDescription: "Windowneon")?
             .withSymbolConfiguration(config)
@@ -86,9 +91,18 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         let excludeItem = NSMenuItem(title: "Exclude app from border", action: #selector(toggleExcludeCurrentApp), keyEquivalent: "")
         excludeItem.tag = 1004
 
+        let enabledItem = NSMenuItem(title: "Enable borders", action: #selector(toggleGloballyEnabled(_:)), keyEquivalent: "b")
+        enabledItem.keyEquivalentModifierMask = [.option, .command]
+        enabledItem.tag = 1006
+        enabledItem.state = HighlightWindow.globallyEnabled ? .on : .off
+
         let ticksItem = NSMenuItem(title: "Show edge ticks", action: #selector(toggleTicks(_:)), keyEquivalent: "")
         ticksItem.tag = 1005
         ticksItem.state = HighlightWindow.ticksEnabled ? .on : .off
+
+        let placementItem = NSMenuItem(title: "Draw border outside window", action: #selector(toggleBorderPlacement(_:)), keyEquivalent: "")
+        placementItem.tag = 1007
+        placementItem.state = HighlightWindow.borderPlacement == .outside ? .on : .off
 
         let accessibilityWarningItem = NSMenuItem(
             title: "⚠ Accessibility permission required",
@@ -112,7 +126,9 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         menu.addItem(colorItem)
         menu.addItem(excludeItem)
         menu.addItem(.separator())
+        menu.addItem(enabledItem)
         menu.addItem(ticksItem)
+        menu.addItem(placementItem)
         menu.addItem(.separator())
         menu.addItem(launchAtLoginItem)
         menu.addItem(.separator())
@@ -161,6 +177,34 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         sender.state = HighlightWindow.ticksEnabled ? .on : .off
         UserDefaults.standard.set(HighlightWindow.ticksEnabled, forKey: "ticksEnabled")
         focusWatcher?.redrawBorder()
+    }
+
+    @objc private func toggleBorderPlacement(_ sender: NSMenuItem) {
+        let isNowOutside = HighlightWindow.borderPlacement == .inside
+        HighlightWindow.borderPlacement = isNowOutside ? .outside : .inside
+        sender.state = isNowOutside ? .on : .off
+        UserDefaults.standard.set(isNowOutside, forKey: "borderPlacementOutside")
+        focusWatcher?.updateCurrentHighlight()
+    }
+
+    @objc private func toggleGloballyEnabled(_ sender: NSMenuItem) {
+        toggleBordersEnabled()
+    }
+
+    private func toggleBordersEnabled() {
+        HighlightWindow.globallyEnabled.toggle()
+        UserDefaults.standard.set(HighlightWindow.globallyEnabled, forKey: "globallyEnabled")
+        statusItem.menu?.item(withTag: 1006)?.state = HighlightWindow.globallyEnabled ? .on : .off
+        updateStatusIcon()
+        focusWatcher?.updateCurrentHighlight()
+    }
+
+    private func setupGlobalHotkey() {
+        NSEvent.addGlobalMonitorForEvents(matching: .keyDown) { [weak self] event in
+            guard event.modifierFlags.intersection([.option, .command, .shift, .control]) == [.option, .command],
+                  event.keyCode == 11 else { return } // 11 = B
+            self?.toggleBordersEnabled()
+        }
     }
 
     @objc private func toggleExcludeCurrentApp() {
