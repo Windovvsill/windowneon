@@ -3,17 +3,20 @@ import ApplicationServices
 
 
 class FocusWatcher {
-    private let highlight = HighlightWindow()
+    let highlight = HighlightWindow()
 
-    private var appObserver: AXObserver?
-    private var windowObserver: AXObserver?
-    private var watchedPID: pid_t = 0
-    private var watchedWindow: AXUIElement?
-    private var eventTap: CFMachPort?
-    private var eventTapSource: CFRunLoopSource?
-    private var isDragging = false
+    var appObserver: AXObserver?
+    var windowObserver: AXObserver?
+    var watchedPID: pid_t = 0
+    var watchedWindow: AXUIElement?
+    var eventTap: CFMachPort?
+    var eventTapSource: CFRunLoopSource?
+    var isDragging = false
 
     var onColorChange: (() -> Void)?
+
+    var pendingWindowUpdate: DispatchWorkItem?
+    static let retryDelays: [Double] = [0.05, 0.1, 0.3, 0.5, 1.0]
 
     func start() {
         setupEventTap()
@@ -34,175 +37,6 @@ class FocusWatcher {
         // Ignore our own activation (color picker, radius panel, etc.)
         guard app.processIdentifier != ProcessInfo.processInfo.processIdentifier else { return }
         switchToApp(pid: app.processIdentifier)
-    }
-
-    // MARK: - App-level switching
-
-    private func switchToApp(pid: pid_t) {
-        teardownObserver(&appObserver)
-        teardownObserver(&windowObserver)
-        watchedWindow = nil
-        watchedPID = pid
-
-        let bundleID = NSRunningApplication(processIdentifier: pid)?.bundleIdentifier ?? ""
-        HighlightWindow.cornerRadius = cornerRadius(for: bundleID)
-        HighlightWindow.borderColor = resolvedColor(for: bundleID)
-        HighlightWindow.borderColor2 = resolvedColor2(for: bundleID)
-        HighlightWindow.borderWidth = effectiveBorderWidth(for: bundleID)
-        onColorChange?()
-
-        let appElement = AXUIElementCreateApplication(pid)
-        var obs: AXObserver?
-        guard AXObserverCreate(pid, axCallback, &obs) == .success, let obs else { return }
-
-        let selfPtr = Unmanaged.passUnretained(self).toOpaque()
-        AXObserverAddNotification(obs, appElement, kAXFocusedWindowChangedNotification as CFString, selfPtr)
-        AXObserverAddNotification(obs, appElement, kAXMainWindowChangedNotification as CFString, selfPtr)
-        AXObserverAddNotification(obs, appElement, kAXWindowCreatedNotification as CFString, selfPtr)
-        CFRunLoopAddSource(CFRunLoopGetMain(), AXObserverGetRunLoopSource(obs), .defaultMode)
-        appObserver = obs
-
-        // Show border for whatever window is already focused in this app
-        updateFocusedWindow()
-    }
-
-    // MARK: - Window-level switching
-
-    private func switchToWindow(_ windowElement: AXUIElement) {
-        teardownObserver(&windowObserver)
-        watchedWindow = windowElement
-
-        var obs: AXObserver?
-        guard AXObserverCreate(watchedPID, axCallback, &obs) == .success, let obs else { return }
-
-        let selfPtr = Unmanaged.passUnretained(self).toOpaque()
-        AXObserverAddNotification(obs, windowElement, kAXWindowMovedNotification as CFString, selfPtr)
-        AXObserverAddNotification(obs, windowElement, kAXWindowResizedNotification as CFString, selfPtr)
-        AXObserverAddNotification(obs, windowElement, kAXUIElementDestroyedNotification as CFString, selfPtr)
-        AXObserverAddNotification(obs, windowElement, kAXWindowMiniaturizedNotification as CFString, selfPtr)
-        CFRunLoopAddSource(CFRunLoopGetMain(), AXObserverGetRunLoopSource(obs), .defaultMode)
-        windowObserver = obs
-
-        updateHighlight(for: windowElement)
-    }
-
-    // MARK: - Highlight updates
-
-    private var pendingWindowUpdate: DispatchWorkItem?
-    private static let retryDelays: [Double] = [0.05, 0.1, 0.3, 0.5, 1.0]
-
-    private func updateFocusedWindow() {
-        pendingWindowUpdate?.cancel()
-        scheduleWindowQuery(pid: watchedPID, attempt: 0)
-    }
-
-    private func scheduleWindowQuery(pid: pid_t, attempt: Int) {
-        guard attempt < Self.retryDelays.count else { return }
-        let work = DispatchWorkItem { [weak self] in
-            guard let self, self.watchedPID == pid else { return }
-            if !self.queryAndSwitchFocusedWindow(pid: pid) {
-                self.scheduleWindowQuery(pid: pid, attempt: attempt + 1)
-            }
-        }
-        pendingWindowUpdate = work
-        DispatchQueue.main.asyncAfter(deadline: .now() + Self.retryDelays[attempt], execute: work)
-    }
-
-    // Returns true if a window was found, false if we should retry.
-    @discardableResult
-    private func queryAndSwitchFocusedWindow(pid: pid_t) -> Bool {
-        let appElement = AXUIElementCreateApplication(pid)
-        var value: CFTypeRef?
-        let focusResult = AXUIElementCopyAttributeValue(appElement, kAXFocusedWindowAttribute as CFString, &value)
-        if focusResult != .success || value == nil {
-            AXUIElementCopyAttributeValue(appElement, kAXMainWindowAttribute as CFString, &value)
-        }
-        guard let windowElement = value else { return false }
-        // swiftlint:disable:next force_cast
-        switchToWindow(windowElement as! AXUIElement)
-        return true
-    }
-
-    private func isFullScreen(_ windowElement: AXUIElement) -> Bool {
-        var value: CFTypeRef?
-        guard AXUIElementCopyAttributeValue(windowElement, "AXFullScreen" as CFString, &value) == .success,
-              let boolRef = value,
-              CFGetTypeID(boolRef) == CFBooleanGetTypeID() else { return false }
-        return CFBooleanGetValue((boolRef as! CFBoolean))
-    }
-
-    private func updateHighlight(for windowElement: AXUIElement) {
-        guard !isDragging else { return }
-        guard HighlightWindow.globallyEnabled else { highlight.hide(); return }
-        guard !isFullScreen(windowElement) else { highlight.hide(); return }
-
-        // Hide the border for excluded apps.
-        let bundleID = NSRunningApplication(processIdentifier: watchedPID)?.bundleIdentifier ?? ""
-        if isAppExcluded(bundleID) { highlight.hide(); return }
-
-        var value: CFTypeRef?
-        guard AXUIElementCopyAttributeValue(windowElement, "AXFrame" as CFString, &value) == .success,
-              let axValue = value,
-              CFGetTypeID(axValue) == AXValueGetTypeID() else {
-            highlight.hide()
-            return
-        }
-
-        var frame = CGRect.zero
-        // swiftlint:disable:next force_cast
-        AXValueGetValue(axValue as! AXValue, .cgRect, &frame)
-
-        // AX coords: y=0 at top of primary screen. Cocoa: y=0 at bottom.
-        let screenHeight = NSScreen.screens[0].frame.height
-        var cocoaFrame = CGRect(
-            x: frame.origin.x,
-            y: screenHeight - frame.origin.y - frame.height,
-            width: frame.width,
-            height: frame.height
-        )
-        if HighlightWindow.borderPlacement == .outside {
-            let expansion = HighlightWindow.borderWidth
-            cocoaFrame = cocoaFrame.insetBy(dx: -expansion, dy: -expansion)
-        }
-        highlight.show(frame: cocoaFrame)
-    }
-
-    // MARK: - Callback dispatch
-
-    func handleNotification(element: AXUIElement, notification: CFString) {
-        switch notification as String {
-        case kAXFocusedWindowChangedNotification, kAXMainWindowChangedNotification:
-            updateFocusedWindow()
-        case kAXWindowCreatedNotification:
-            updateFocusedWindow()
-        case kAXWindowMovedNotification, kAXWindowResizedNotification:
-            updateHighlight(for: element)
-        case kAXUIElementDestroyedNotification, kAXWindowMiniaturizedNotification:
-            highlight.hide()
-        default:
-            break
-        }
-    }
-
-    // MARK: - Event tap (smooth drag tracking)
-
-    private func setupEventTap() {
-        let mask = CGEventMask(1 << CGEventType.leftMouseDragged.rawValue | 1 << CGEventType.leftMouseUp.rawValue)
-        let selfPtr = Unmanaged.passUnretained(self).toOpaque()
-        guard let tap = CGEvent.tapCreate(
-            tap: .cgSessionEventTap,
-            place: .headInsertEventTap,
-            options: .listenOnly,
-            eventsOfInterest: mask,
-            callback: eventTapCallback,
-            userInfo: selfPtr
-        ) else { return }
-
-        let source = CFMachPortCreateRunLoopSource(kCFAllocatorDefault, tap, 0)
-        CFRunLoopAddSource(CFRunLoopGetMain(), source, .defaultMode)
-        CGEvent.tapEnable(tap: tap, enable: true)
-        eventTap = tap
-        eventTapSource = source
     }
 
     func redrawBorder() {
@@ -243,39 +77,10 @@ class FocusWatcher {
 
     // MARK: - Helpers
 
-    private func teardownObserver(_ obs: inout AXObserver?) {
+    func teardownObserver(_ obs: inout AXObserver?) {
         guard let o = obs else { return }
         CFRunLoopRemoveSource(CFRunLoopGetMain(), AXObserverGetRunLoopSource(o), .defaultMode)
         obs = nil
     }
-}
 
-// Global C-compatible callback for CGEventTap (mouse drag)
-private func eventTapCallback(
-    _ proxy: CGEventTapProxy,
-    _ type: CGEventType,
-    _ event: CGEvent,
-    _ refcon: UnsafeMutableRawPointer?
-) -> Unmanaged<CGEvent>? {
-    if let refcon {
-        let watcher = Unmanaged<FocusWatcher>.fromOpaque(refcon).takeUnretainedValue()
-        switch type {
-        case .leftMouseDragged: watcher.handleMouseDrag()
-        case .leftMouseUp:      watcher.handleMouseUp()
-        default: break
-        }
-    }
-    return Unmanaged.passUnretained(event)
-}
-
-// Global C-compatible callback required by AXObserverCreate
-private func axCallback(
-    _ observer: AXObserver,
-    _ element: AXUIElement,
-    _ notification: CFString,
-    _ refcon: UnsafeMutableRawPointer?
-) {
-    guard let refcon else { return }
-    Unmanaged<FocusWatcher>.fromOpaque(refcon).takeUnretainedValue()
-        .handleNotification(element: element, notification: notification)
 }
