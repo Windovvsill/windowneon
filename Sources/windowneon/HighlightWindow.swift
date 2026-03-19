@@ -11,6 +11,7 @@ class HighlightWindow: NSWindow {
     static var ticksEnabled: Bool = true
     static var globallyEnabled: Bool = true
     static var borderPlacement: BorderPlacement = .inside
+    static var fadeEnabled: Bool = false
 
     enum BorderPlacement { case inside, outside }
 
@@ -25,10 +26,27 @@ class HighlightWindow: NSWindow {
         contentView = BorderView()
     }
 
+    private var fadeTimer: Timer?
+
     func show(frame: CGRect) {
         setFrame(frame, display: true)
         contentView?.needsDisplay = true
-        if !isVisible { orderFrontRegardless() }
+        if HighlightWindow.fadeEnabled {
+            fadeTimer?.invalidate()
+            alphaValue = 0
+            if !isVisible { orderFrontRegardless() }
+            let start = Date()
+            let duration: TimeInterval = 0.4
+            fadeTimer = Timer.scheduledTimer(withTimeInterval: 1.0/60, repeats: true) { [weak self] timer in
+                guard let self else { timer.invalidate(); return }
+                let t = min(Date().timeIntervalSince(start) / duration, 1)
+                self.alphaValue = CGFloat(t)
+                if t >= 1 { timer.invalidate() }
+            }
+        } else {
+            alphaValue = 1
+            if !isVisible { orderFrontRegardless() }
+        }
     }
 
     func hide() {

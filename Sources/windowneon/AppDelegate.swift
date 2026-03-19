@@ -17,6 +17,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         HighlightWindow.globallyEnabled = UserDefaults.standard.object(forKey: "globallyEnabled") as? Bool ?? true
         let savedOutside = UserDefaults.standard.object(forKey: "borderPlacementOutside") as? Bool ?? false
         HighlightWindow.borderPlacement = savedOutside ? .outside : .inside
+        HighlightWindow.fadeEnabled = UserDefaults.standard.object(forKey: "fadeEnabled") as? Bool ?? false
         setupStatusItem()
         setupGlobalHotkey()
         requestAccessibilityAndStart()
@@ -91,10 +92,10 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         let excludeItem = NSMenuItem(title: "Exclude app from border", action: #selector(toggleExcludeCurrentApp), keyEquivalent: "")
         excludeItem.tag = 1004
 
-        let enabledItem = NSMenuItem(title: "Enable borders", action: #selector(toggleGloballyEnabled(_:)), keyEquivalent: "b")
-        enabledItem.keyEquivalentModifierMask = [.option, .command]
-        enabledItem.tag = 1006
-        enabledItem.state = HighlightWindow.globallyEnabled ? .on : .off
+        let activatedItem = NSMenuItem(title: "Activate borders", action: #selector(toggleBordersActivated(_:)), keyEquivalent: "b")
+        activatedItem.keyEquivalentModifierMask = [.option, .command]
+        activatedItem.tag = 1006
+        activatedItem.state = HighlightWindow.globallyEnabled ? .on : .off
 
         let ticksItem = NSMenuItem(title: "Show edge ticks", action: #selector(toggleTicks(_:)), keyEquivalent: "")
         ticksItem.tag = 1005
@@ -103,6 +104,10 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         let placementItem = NSMenuItem(title: "Draw border outside window", action: #selector(toggleBorderPlacement(_:)), keyEquivalent: "")
         placementItem.tag = 1007
         placementItem.state = HighlightWindow.borderPlacement == .outside ? .on : .off
+
+        let fadeItem = NSMenuItem(title: "Fade in on focus", action: #selector(toggleFade(_:)), keyEquivalent: "")
+        fadeItem.tag = 1008
+        fadeItem.state = HighlightWindow.fadeEnabled ? .on : .off
 
         let accessibilityWarningItem = NSMenuItem(
             title: "⚠ Accessibility permission required",
@@ -126,9 +131,10 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         menu.addItem(colorItem)
         menu.addItem(excludeItem)
         menu.addItem(.separator())
-        menu.addItem(enabledItem)
+        menu.addItem(activatedItem)
         menu.addItem(ticksItem)
         menu.addItem(placementItem)
+        menu.addItem(fadeItem)
         menu.addItem(.separator())
         menu.addItem(launchAtLoginItem)
         menu.addItem(.separator())
@@ -187,11 +193,17 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         focusWatcher?.updateCurrentHighlight()
     }
 
-    @objc private func toggleGloballyEnabled(_ sender: NSMenuItem) {
-        toggleBordersEnabled()
+    @objc private func toggleFade(_ sender: NSMenuItem) {
+        HighlightWindow.fadeEnabled.toggle()
+        sender.state = HighlightWindow.fadeEnabled ? .on : .off
+        UserDefaults.standard.set(HighlightWindow.fadeEnabled, forKey: "fadeEnabled")
     }
 
-    private func toggleBordersEnabled() {
+    @objc private func toggleBordersActivated(_ sender: NSMenuItem) {
+        toggleBordersActivation()
+    }
+
+    private func toggleBordersActivation() {
         HighlightWindow.globallyEnabled.toggle()
         UserDefaults.standard.set(HighlightWindow.globallyEnabled, forKey: "globallyEnabled")
         statusItem.menu?.item(withTag: 1006)?.state = HighlightWindow.globallyEnabled ? .on : .off
@@ -203,7 +215,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         NSEvent.addGlobalMonitorForEvents(matching: .keyDown) { [weak self] event in
             guard event.modifierFlags.intersection([.option, .command, .shift, .control]) == [.option, .command],
                   event.keyCode == 11 else { return } // 11 = B
-            self?.toggleBordersEnabled()
+            self?.toggleBordersActivation()
         }
     }
 
