@@ -59,7 +59,14 @@ extension AppDelegate {
         HighlightWindow.globallyEnabled.toggle()
         UserDefaults.standard.set(HighlightWindow.globallyEnabled, forKey: "globallyEnabled")
         statusItem.menu?.item(withTag: 1006)?.state = HighlightWindow.globallyEnabled ? .on : .off
-        updateStatusIcon()
+        if HighlightWindow.globallyEnabled {
+            let happy = NSImage(systemSymbolName: "face.smiling.fill", accessibilityDescription: nil)?
+                .withSymbolConfiguration(.init(paletteColors: [.black, .systemYellow]))
+            statusItem.button?.image = happy
+            DispatchQueue.main.asyncAfter(deadline: .now() + 1) { [weak self] in self?.updateStatusIcon() }
+        } else {
+            updateStatusIcon()
+        }
         focusWatcher?.updateCurrentHighlight()
     }
 

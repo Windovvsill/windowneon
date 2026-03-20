@@ -4,10 +4,35 @@ Draws a border around the focused window on macOS.
 
 ![Demo](docs/windowneon.gif)
 
+## Install
+
+Download the latest `windowneon-x.x.x.zip` from the [Releases](https://github.com/Windovvsill/windowneon/releases) page, unzip it, and move `windowneon.app` to your Applications folder.
+
+## Accessibility permission
+
+Windowneon requires Accessibility access to detect which window is currently focused. macOS will prompt you on first launch. You can also grant it manually in System Settings under Privacy and Security, then Accessibility.
+
+The app only uses this permission to read window positions and focus state. It does not read window contents, keystrokes, or any other input.
+
 ## Requirements
 
-- macOS 13+
-- Xcode command line tools (`xcode-select --install`)
+macOS 13 or later.
+
+## Features
+
+The menu bar icon gives access to all settings, which are per-app unless noted:
+
+- **Border width** -- choose a global default from 1-10pt, or override per app
+- **Set corner radius** -- live preview slider to match any window style
+- **Set border color** -- solid color or two-color gradient; updates live as you pick
+- **Exclude app from border** -- hide the border for specific apps
+- **Show edge ticks** -- short perpendicular marks at the midpoint of each edge, useful in split-screen to see which side is focused at a glance; ticks are suppressed at screen edges
+- **Draw border outside window** -- extend the border outward instead of inward
+- **Fade in on focus** -- animate the border on focus change (off by default)
+- **Enable borders** -- toggle all borders on/off with Cmd+Opt+B
+- **Export / Import settings** -- save and restore all per-app settings as JSON
+- **Launch at login** -- start automatically when you log in
+- **Check for updates** -- built-in auto-updater via Sparkle
 
 ## Run from source
 
@@ -23,16 +48,3 @@ swift run
 make app
 open windowneon.app
 ```
-
-Grant Accessibility permission when prompted. The windowneon icon will appear in your menu bar.
-
-## Usage
-
-Windowneon runs silently in the background. Each app automatically gets its own color derived from its bundle ID, so you can tell at a glance which window is focused.
-
-The menu bar icon gives access to all settings:
-
-- **Border Width** — choose from 1–10pt
-- **Set Corner Radius for [App]** — set a per-app corner radius with a live preview slider
-- **Set Border Color for [App]** — override the auto-assigned color for the current app using the system color picker; the border updates live as you pick
-- **Launch at Login** — start windowneon automatically when you log in
