@@ -8,5 +8,6 @@ docs/*.mov
 *.swp
 releases/
 README.local.md
+competitors.md
 *.cer
 *.mov

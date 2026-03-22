@@ -1,6 +1,6 @@
 # windowneon
 
-Draws a border around the focused window on macOS.
+A macOS menu bar app that draws a colored border around the active window, so you always know which window has focus. Useful for split-screen work, multiple monitors, and anyone who finds macOS makes it hard to tell which window is active.
 
 ![Demo](docs/windowneon.gif)
 
