@@ -10,7 +10,7 @@ app:
 	rm -rf $(APP)
 	mkdir -p $(APP)/Contents/MacOS
 	mkdir -p $(APP)/Contents/Frameworks
-	cp .build/release/windowneon $(APP)/Contents/MacOS/
+	cp .build/release/windowneonApp $(APP)/Contents/MacOS/windowneon
 	install_name_tool -add_rpath @executable_path/../Frameworks $(APP)/Contents/MacOS/windowneon
 	cp Info.plist $(APP)/Contents/
 	/usr/libexec/PlistBuddy -c "Set :CFBundleShortVersionString $(VERSION)" $(APP)/Contents/Info.plist

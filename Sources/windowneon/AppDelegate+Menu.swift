@@ -46,10 +46,12 @@ extension AppDelegate {
         let excludeItem = NSMenuItem(title: "Exclude app from border", action: #selector(toggleExcludeCurrentApp), keyEquivalent: "")
         excludeItem.tag = 1004
 
-        let activatedItem = NSMenuItem(title: "Activate borders", action: #selector(toggleBordersActivated(_:)), keyEquivalent: "b")
-        activatedItem.keyEquivalentModifierMask = [.option, .command]
+        let activatedItem = NSMenuItem(title: "Activate borders", action: #selector(toggleBordersActivated(_:)), keyEquivalent: "")
         activatedItem.tag = 1006
         activatedItem.state = HighlightWindow.globallyEnabled ? .on : .off
+
+        let hotkeyItem = NSMenuItem(title: "Set hotkey…", action: #selector(openHotkeyPanel), keyEquivalent: "")
+        hotkeyItem.tag = 1009
 
         let ticksItem = NSMenuItem(title: "Show edge ticks", action: #selector(toggleTicks(_:)), keyEquivalent: "")
         ticksItem.tag = 1005
@@ -86,6 +88,7 @@ extension AppDelegate {
         menu.addItem(excludeItem)
         menu.addItem(.separator())
         menu.addItem(activatedItem)
+        menu.addItem(hotkeyItem)
         menu.addItem(ticksItem)
         menu.addItem(placementItem)
         menu.addItem(fadeItem)
@@ -108,6 +111,8 @@ extension AppDelegate {
         let appName = app?.localizedName ?? "This App"
         let bundleID = app?.bundleIdentifier ?? ""
 
+        let shortcut = hotkeyKeyCode == UInt16.max ? "disabled" : hotkeyDisplay
+        menu.item(withTag: 1006)?.title = "Activate borders  \(shortcut)"
         menu.item(withTag: 1001)?.title = "Set corner radius for \(appName)…"
         menu.item(withTag: 1002)?.title = "Set border color for \(appName)…"
         menu.item(withTag: 1003)?.title = "Set width for \(appName)…"

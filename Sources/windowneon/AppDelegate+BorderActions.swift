@@ -70,6 +70,27 @@ extension AppDelegate {
         focusWatcher?.updateCurrentHighlight()
     }
 
+    @objc func openHotkeyPanel() {
+        hotkeyPanel = HotkeyPanel(currentDisplay: hotkeyKeyCode == UInt16.max ? "None" : hotkeyDisplay)
+        hotkeyPanel?.onSave = { [weak self] keyCode, modifiers, display in
+            self?.hotkeyKeyCode = keyCode
+            self?.hotkeyModifiers = modifiers
+            self?.hotkeyDisplay = display
+            UserDefaults.standard.set(Int(keyCode), forKey: "hotkeyKeyCode")
+            UserDefaults.standard.set(Int(modifiers.rawValue), forKey: "hotkeyModifiers")
+            UserDefaults.standard.set(display, forKey: "hotkeyDisplay")
+            self?.setupGlobalHotkey()
+        }
+        hotkeyPanel?.onDisable = { [weak self] in
+            self?.hotkeyKeyCode = UInt16.max
+            UserDefaults.standard.set(Int(UInt16.max), forKey: "hotkeyKeyCode")
+            self?.setupGlobalHotkey()
+        }
+        NSApp.activate(ignoringOtherApps: true)
+        hotkeyPanel?.center()
+        hotkeyPanel?.makeKeyAndOrderFront(nil)
+    }
+
     @objc func toggleExcludeCurrentApp() {
         guard let bundleID = NSWorkspace.shared.frontmostApplication?.bundleIdentifier else { return }
         toggleAppExclusion(bundleID)

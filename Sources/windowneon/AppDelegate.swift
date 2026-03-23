@@ -10,10 +10,16 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
 
     var radiusPanel: CornerRadiusPanel?
     var borderColorPanel: BorderColorPanel?
+    var hotkeyPanel: HotkeyPanel?
     var colorPickerBundleID: String?
     var colorPickerOriginal: (NSColor, NSColor?)?
     var colorPickerSlot = 1
     var accessibilityRecoveryTimer: Timer?
+
+    var hotkeyKeyCode: UInt16 = 11
+    var hotkeyModifiers: NSEvent.ModifierFlags = [.command, .option]
+    var hotkeyDisplay: String = "⌘⌥B"
+    var globalHotkeyMonitor: Any?
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         #if !DEBUG
@@ -25,6 +31,11 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         let savedOutside = UserDefaults.standard.object(forKey: "borderPlacementOutside") as? Bool ?? false
         HighlightWindow.borderPlacement = savedOutside ? .outside : .inside
         HighlightWindow.fadeEnabled = UserDefaults.standard.object(forKey: "fadeEnabled") as? Bool ?? false
+        if let kc = UserDefaults.standard.object(forKey: "hotkeyKeyCode") as? Int {
+            hotkeyKeyCode = UInt16(kc)
+            hotkeyModifiers = NSEvent.ModifierFlags(rawValue: UInt(UserDefaults.standard.integer(forKey: "hotkeyModifiers")))
+            hotkeyDisplay = UserDefaults.standard.string(forKey: "hotkeyDisplay") ?? "⌘⌥B"
+        }
         setupStatusItem()
         setupGlobalHotkey()
         requestAccessibilityAndStart()
@@ -56,11 +67,14 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         statusItem.button?.image = icon
     }
 
-    private func setupGlobalHotkey() {
-        NSEvent.addGlobalMonitorForEvents(matching: .keyDown) { [weak self] event in
-            guard event.modifierFlags.intersection([.option, .command, .shift, .control]) == [.option, .command],
-                  event.keyCode == 11 else { return } // 11 = B
-            self?.toggleBordersActivation()
+    func setupGlobalHotkey() {
+        if let m = globalHotkeyMonitor { NSEvent.removeMonitor(m); globalHotkeyMonitor = nil }
+        guard hotkeyKeyCode != UInt16.max else { return }
+        globalHotkeyMonitor = NSEvent.addGlobalMonitorForEvents(matching: .keyDown) { [weak self] event in
+            guard let self else { return }
+            let mods = event.modifierFlags.intersection([.option, .command, .shift, .control])
+            guard mods == self.hotkeyModifiers, event.keyCode == self.hotkeyKeyCode else { return }
+            self.toggleBordersActivation()
         }
     }
 
