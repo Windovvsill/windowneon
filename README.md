@@ -34,6 +34,34 @@ The menu bar icon gives access to all settings, which are per-app unless noted:
 - **Launch at login** -- start automatically when you log in
 - **Check for updates** -- built-in auto-updater via Sparkle
 
+## URL scheme
+
+Windowneon registers the `windowneon://` URL scheme so you can control the border color from scripts or the terminal.
+
+| URL | Effect |
+|-----|--------|
+| `windowneon://set?color=FF0000` | Override all borders to the given hex color |
+| `windowneon://reset` | Clear the override and restore per-app colors |
+
+The override is in-memory only — it clears when the app quits.
+
+> **Note:** URL scheme handling requires the app to be running as a built `.app` bundle. It does not work when launched via `swift run`. To test, run `make app && open windowneon.app` first.
+
+A common use case is a shell wrapper that turns borders red when you SSH into a production host:
+
+```bash
+# ~/.zshrc
+function ssh() {
+    if [[ "$*" == *prod* ]]; then
+        open "windowneon://set?color=FF0000"
+        command ssh "$@"
+        open "windowneon://reset"
+    else
+        command ssh "$@"
+    fi
+}
+```
+
 ## Run from source
 
 ```bash

@@ -12,8 +12,8 @@ extension FocusWatcher {
 
         let bundleID = NSRunningApplication(processIdentifier: pid)?.bundleIdentifier ?? ""
         HighlightWindow.cornerRadius = cornerRadius(for: bundleID)
-        HighlightWindow.borderColor = resolvedColor(for: bundleID)
-        HighlightWindow.borderColor2 = resolvedColor2(for: bundleID)
+        HighlightWindow.borderColor = HighlightWindow.colorOverride ?? resolvedColor(for: bundleID)
+        HighlightWindow.borderColor2 = HighlightWindow.colorOverride != nil ? nil : resolvedColor2(for: bundleID)
         HighlightWindow.borderWidth = effectiveBorderWidth(for: bundleID)
         onColorChange?()
 

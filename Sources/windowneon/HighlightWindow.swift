@@ -12,6 +12,7 @@ class HighlightWindow: NSWindow {
     static var globallyEnabled: Bool = true
     static var borderPlacement: BorderPlacement = .inside
     static var fadeEnabled: Bool = false
+    static var colorOverride: NSColor? = nil
 
     enum BorderPlacement { case inside, outside }
 
