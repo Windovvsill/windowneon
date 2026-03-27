@@ -2,6 +2,12 @@ import AppKit
 import ApplicationServices
 
 
+struct AXWindowKey: Hashable {
+    let element: AXUIElement
+    func hash(into hasher: inout Hasher) { hasher.combine(CFHash(element)) }
+    static func == (lhs: Self, rhs: Self) -> Bool { CFEqual(lhs.element, rhs.element) }
+}
+
 class FocusWatcher {
     let highlight = HighlightWindow()
 
@@ -15,6 +21,7 @@ class FocusWatcher {
 
     var onColorChange: (() -> Void)?
 
+    var windowColorOverrides: [AXWindowKey: (color: NSColor, color2: NSColor?)] = [:]
     var pendingWindowUpdate: DispatchWorkItem?
     static let retryDelays: [Double] = [0.05, 0.1, 0.3, 0.5, 1.0]
 

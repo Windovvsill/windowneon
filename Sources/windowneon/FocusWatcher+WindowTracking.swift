@@ -58,7 +58,10 @@ extension FocusWatcher {
             updateFocusedWindow()
         case kAXWindowMovedNotification, kAXWindowResizedNotification:
             updateHighlight(for: element)
-        case kAXUIElementDestroyedNotification, kAXWindowMiniaturizedNotification:
+        case kAXUIElementDestroyedNotification:
+            windowColorOverrides.removeValue(forKey: AXWindowKey(element: element))
+            highlight.hide()
+        case kAXWindowMiniaturizedNotification:
             highlight.hide()
         default:
             break

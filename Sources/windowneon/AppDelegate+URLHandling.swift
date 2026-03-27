@@ -6,27 +6,31 @@ extension AppDelegate {
     }
 
     private func handleURL(_ url: URL) {
-        guard url.scheme == "windowneon" else { return }
+        guard url.scheme == "windowneon",
+              let watcher = focusWatcher,
+              let windowElement = watcher.watchedWindow else { return }
+
         let components = URLComponents(url: url, resolvingAgainstBaseURL: false)
+        let key = AXWindowKey(element: windowElement)
 
         switch url.host {
         case "set":
             guard let hexStr = components?.queryItems?.first(where: { $0.name == "color" })?.value,
                   let color = NSColor(hex: hexStr) else { return }
-            HighlightWindow.colorOverride = color
+            let color2 = components?.queryItems?.first(where: { $0.name == "color2" })?.value.flatMap { NSColor(hex: $0) }
+            watcher.windowColorOverrides[key] = (color, color2)
+            HighlightWindow.borderColor = color
+            HighlightWindow.borderColor2 = color2
         case "reset":
-            HighlightWindow.colorOverride = nil
+            watcher.windowColorOverrides.removeValue(forKey: key)
+            let bundleID = NSRunningApplication(processIdentifier: watcher.watchedPID)?.bundleIdentifier ?? ""
+            HighlightWindow.borderColor = resolvedColor(for: bundleID)
+            HighlightWindow.borderColor2 = resolvedColor2(for: bundleID)
         default:
             return
         }
 
-        // Apply immediately to the current window
-        if let pid = focusWatcher?.watchedPID,
-           let bundleID = NSRunningApplication(processIdentifier: pid)?.bundleIdentifier {
-            HighlightWindow.borderColor = HighlightWindow.colorOverride ?? resolvedColor(for: bundleID)
-            HighlightWindow.borderColor2 = HighlightWindow.colorOverride != nil ? nil : resolvedColor2(for: bundleID)
-        }
-        focusWatcher?.redrawBorder()
+        watcher.redrawBorder()
         updateStatusIcon()
     }
 }

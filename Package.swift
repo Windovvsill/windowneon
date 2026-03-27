@@ -27,7 +27,8 @@ let package = Package(
                 "windowneon",
                 .product(name: "SnapshotTesting", package: "swift-snapshot-testing"),
             ],
-            path: "Tests/windowneonTests"
+            path: "Tests/windowneonTests",
+            resources: [.copy("__Snapshots__")]
         ),
     ]
 )

@@ -40,8 +40,9 @@ Windowneon registers the `windowneon://` URL scheme so you can control the borde
 
 | URL | Effect |
 |-----|--------|
-| `windowneon://set?color=FF0000` | Override all borders to the given hex color |
-| `windowneon://reset` | Clear the override and restore per-app colors |
+| `windowneon://set?color=FF0000` | Override the focused window's border to the given hex color |
+| `windowneon://set?color=FF0000&color2=00FF00` | Same, with a two-color gradient |
+| `windowneon://reset` | Clear the override on the focused window and restore its per-app color |
 
 The override is in-memory only — it clears when the app quits.
 
