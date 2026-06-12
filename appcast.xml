@@ -3,6 +3,23 @@
     <channel>
         <title>windowneon</title>
         <item>
+            <title>1.0.17</title>
+            <pubDate>Thu, 11 Jun 2026 23:16:54 -0700</pubDate>
+            <link>https://github.com/Windovvsill/windowneon</link>
+            <sparkle:version>1.0.17</sparkle:version>
+            <sparkle:shortVersionString>1.0.17</sparkle:shortVersionString>
+            <sparkle:minimumSystemVersion>13.0</sparkle:minimumSystemVersion>
+            <sparkle:hardwareRequirements>arm64</sparkle:hardwareRequirements>
+            <enclosure url="https://github.com/Windovvsill/windowneon/releases/download/v1.0.17/windowneon-1.0.17.zip" length="1254970" type="application/octet-stream" sparkle:edSignature="qrKuegaMN+GH/QPesuG2XK5/95WJ5iv2Jun4zso1VcZe8KeYe2xB1UIb1170Qb6QABShxS2nxhEV8zHK/lPICg=="/>
+            <sparkle:deltas>
+                <enclosure url="https://github.com/Windovvsill/windowneon/releases/download/v1.0.17/windowneon1.0.17-1.0.12.delta" sparkle:deltaFrom="1.0.12" length="125834" type="application/octet-stream" sparkle:deltaFromSparkleExecutableSize="977808" sparkle:deltaFromSparkleLocales="de,he,ar,el,ja,fa,uk" sparkle:edSignature="EIINxdAnB+xOCcfJcBZMQ6TlIJr7hrphp+qcPKHF/x4Sp/gzib0ZU6yLRVbEounqFdjnrTNWv98W/7N5jYnEAQ=="/>
+                <enclosure url="https://github.com/Windovvsill/windowneon/releases/download/v1.0.17/windowneon1.0.17-1.0.11.delta" sparkle:deltaFrom="1.0.11" length="124642" type="application/octet-stream" sparkle:deltaFromSparkleExecutableSize="977808" sparkle:deltaFromSparkleLocales="de,he,ar,el,ja,fa,uk" sparkle:edSignature="jNSVd5iNioeX4ktFmXNZuwfl5pyvu1kNayr8da77x3lONEQF4a1rpg9Tcrstw5KssYWmkYSndq0AMBXrJT7ABQ=="/>
+                <enclosure url="https://github.com/Windovvsill/windowneon/releases/download/v1.0.17/windowneon1.0.17-1.0.10.delta" sparkle:deltaFrom="1.0.10" length="136166" type="application/octet-stream" sparkle:deltaFromSparkleExecutableSize="977808" sparkle:deltaFromSparkleLocales="de,he,ar,el,ja,fa,uk" sparkle:edSignature="AYRy9IK815jtSlcxDkVTYtASw+wuKNj/JEc3rqRBPiZX/+RCPDiVHUYQj+F5NazT6wVs64wA9wJt6QA/9vzEBQ=="/>
+                <enclosure url="https://github.com/Windovvsill/windowneon/releases/download/v1.0.17/windowneon1.0.17-1.0.9.delta" sparkle:deltaFrom="1.0.9" length="140762" type="application/octet-stream" sparkle:deltaFromSparkleExecutableSize="977808" sparkle:deltaFromSparkleLocales="de,he,ar,el,ja,fa,uk" sparkle:edSignature="TJ4JSoW7294uqJSjyYyCDChfrKWh9Xez2tkLJqDU6J2HjAqbL4ySggXmHogmcXN99Ux7r6nD7Wl09c1X1w6yBw=="/>
+                <enclosure url="https://github.com/Windovvsill/windowneon/releases/download/v1.0.17/windowneon1.0.17-1.0.8.delta" sparkle:deltaFrom="1.0.8" length="141542" type="application/octet-stream" sparkle:deltaFromSparkleExecutableSize="977808" sparkle:deltaFromSparkleLocales="de,he,ar,el,ja,fa,uk" sparkle:edSignature="/tTSChLNb7Di6jKhdyFOAxHfYcdL8EDiDtyGNrb+1TgQ6pCObXrzlhpUQfaH1Az8VCGxldhHl4f2Vzl/vM6vBQ=="/>
+            </sparkle:deltas>
+        </item>
+        <item>
             <title>1.0.12</title>
             <pubDate>Fri, 27 Mar 2026 13:48:43 -0700</pubDate>
             <link>https://github.com/Windovvsill/windowneon</link>
@@ -10,7 +27,7 @@
             <sparkle:shortVersionString>1.0.12</sparkle:shortVersionString>
             <sparkle:minimumSystemVersion>13.0</sparkle:minimumSystemVersion>
             <sparkle:hardwareRequirements>arm64</sparkle:hardwareRequirements>
-            <enclosure url="https://github.com/Windovvsill/windowneon/releases/download/v1.0.12/windowneon-1.0.12.zip" length="1169603" type="application/octet-stream" sparkle:edSignature="qSwmqT4J1bKTMvYSPlZ9sL1S0svU9V6fD8lsv9BmAEldpJGM4cG7ZcmRuD6fDJxBFaF2gRFcu6xHGk/Cw2HKAw=="/>
+            <enclosure url="https://github.com/Windovvsill/windowneon/releases/download/v1.0.17/windowneon-1.0.12.zip" length="1169603" type="application/octet-stream" sparkle:edSignature="qSwmqT4J1bKTMvYSPlZ9sL1S0svU9V6fD8lsv9BmAEldpJGM4cG7ZcmRuD6fDJxBFaF2gRFcu6xHGk/Cw2HKAw=="/>
             <sparkle:deltas>
                 <enclosure url="https://github.com/Windovvsill/windowneon/releases/download/v1.0.12/windowneon1.0.12-1.0.11.delta" sparkle:deltaFrom="1.0.11" length="30142" type="application/octet-stream" sparkle:deltaFromSparkleExecutableSize="977808" sparkle:deltaFromSparkleLocales="de,he,ar,el,ja,fa,uk" sparkle:edSignature="XGI9MCZBK/H7zh2PvIAw85uF2awJQ18NDNKnGQhS/XGHoH3u+1Q3vMHH7X+zM4zAyk0ZpyMPY/3yND52V/YXAw=="/>
                 <enclosure url="https://github.com/Windovvsill/windowneon/releases/download/v1.0.12/windowneon1.0.12-1.0.10.delta" sparkle:deltaFrom="1.0.10" length="57462" type="application/octet-stream" sparkle:deltaFromSparkleExecutableSize="977808" sparkle:deltaFromSparkleLocales="de,he,ar,el,ja,fa,uk" sparkle:edSignature="YENudE3G/VJsZaDZHUOS/r/oYfpHWt1JYeQv1JBD71n7pD8KGR91I7SstSgUEw5Y9jBGj3dtvco1g8dWazZ/CQ=="/>
@@ -27,30 +44,13 @@
             <sparkle:shortVersionString>1.0.11</sparkle:shortVersionString>
             <sparkle:minimumSystemVersion>13.0</sparkle:minimumSystemVersion>
             <sparkle:hardwareRequirements>arm64</sparkle:hardwareRequirements>
-            <enclosure url="https://github.com/Windovvsill/windowneon/releases/download/v1.0.12/windowneon-1.0.11.zip" length="1167117" type="application/octet-stream" sparkle:edSignature="Qfo1Ts8n8NRI6zIkXBuk2CLj9YgIHjooIpYRVlKxComn8dDlyAoTzgCByFjkG4UIBgmXM4oEBC0Wb2svVmmPDg=="/>
+            <enclosure url="https://github.com/Windovvsill/windowneon/releases/download/v1.0.17/windowneon-1.0.11.zip" length="1167117" type="application/octet-stream" sparkle:edSignature="Qfo1Ts8n8NRI6zIkXBuk2CLj9YgIHjooIpYRVlKxComn8dDlyAoTzgCByFjkG4UIBgmXM4oEBC0Wb2svVmmPDg=="/>
             <sparkle:deltas>
                 <enclosure url="https://github.com/Windovvsill/windowneon/releases/download/v1.0.11/windowneon1.0.11-1.0.10.delta" sparkle:deltaFrom="1.0.10" length="53994" type="application/octet-stream" sparkle:deltaFromSparkleExecutableSize="977808" sparkle:deltaFromSparkleLocales="de,he,ar,el,ja,fa,uk" sparkle:edSignature="ILZVI/Pa/eajnJAoDcLOe1trPANEYelHRxhymWPqMZ9t78ILuo1oy7Gyl7AXtfdfkQGSfYmYlcBmJft0ROqaAQ=="/>
                 <enclosure url="https://github.com/Windovvsill/windowneon/releases/download/v1.0.11/windowneon1.0.11-1.0.9.delta" sparkle:deltaFrom="1.0.9" length="62194" type="application/octet-stream" sparkle:deltaFromSparkleExecutableSize="977808" sparkle:deltaFromSparkleLocales="de,he,ar,el,ja,fa,uk" sparkle:edSignature="yeMlOgWqsyISq3gq2RGfWmv5xh19KAcgwNqZDupsSoZD4slG+YxZjt8LUT2+CVspRLbIzHi+6GsODzZD2BCFBw=="/>
                 <enclosure url="https://github.com/Windovvsill/windowneon/releases/download/v1.0.11/windowneon1.0.11-1.0.8.delta" sparkle:deltaFrom="1.0.8" length="62022" type="application/octet-stream" sparkle:deltaFromSparkleExecutableSize="977808" sparkle:deltaFromSparkleLocales="de,he,ar,el,ja,fa,uk" sparkle:edSignature="v/rDOdzPYhnxstztCrlrWzfE+/uP8yxXYym8sLUtzEDomiaMRSqjNB1skCjPM18jLcW8t38hPxhS8aaEOTs+DQ=="/>
                 <enclosure url="https://github.com/Windovvsill/windowneon/releases/download/v1.0.11/windowneon1.0.11-1.0.7.delta" sparkle:deltaFrom="1.0.7" length="66490" type="application/octet-stream" sparkle:deltaFromSparkleExecutableSize="977808" sparkle:deltaFromSparkleLocales="de,he,ar,el,ja,fa,uk" sparkle:edSignature="dkbGEmE9HGmNamDUFXooPMqzPVZKzBzrSd0lXLtZFO8C+G1ENANUk0JX9Bx5nFdZP1qculUY/aNAMrfR8du2BA=="/>
                 <enclosure url="https://github.com/Windovvsill/windowneon/releases/download/v1.0.11/windowneon1.0.11-1.0.6.delta" sparkle:deltaFrom="1.0.6" length="66410" type="application/octet-stream" sparkle:deltaFromSparkleExecutableSize="977808" sparkle:deltaFromSparkleLocales="de,he,ar,el,ja,fa,uk" sparkle:edSignature="1fE5LZMVPdTS7E0HVmaszvd+hZSZe2JmjCiGRb5r+GaLahVBh3xx7MZPePLJQqq1cz2cd45+QYG4I6BNUMs4Dg=="/>
-            </sparkle:deltas>
-        </item>
-        <item>
-            <title>1.0.10</title>
-            <pubDate>Sun, 22 Mar 2026 19:34:14 -0700</pubDate>
-            <link>https://github.com/Windovvsill/windowneon</link>
-            <sparkle:version>1.0.10</sparkle:version>
-            <sparkle:shortVersionString>1.0.10</sparkle:shortVersionString>
-            <sparkle:minimumSystemVersion>13.0</sparkle:minimumSystemVersion>
-            <sparkle:hardwareRequirements>arm64</sparkle:hardwareRequirements>
-            <enclosure url="https://github.com/Windovvsill/windowneon/releases/download/v1.0.12/windowneon-1.0.10.zip" length="1161825" type="application/octet-stream" sparkle:edSignature="kGt5x6cB7f7vhkcvWnjDHfC3n+0Xu3UdxGBqn4B12tWhjJ0uKqXuvdkbdPZw4rE2cg8+YcJ2UucfvMLfpIPkDg=="/>
-            <sparkle:deltas>
-                <enclosure url="https://github.com/Windovvsill/windowneon/releases/download/v1.0.10/windowneon1.0.10-1.0.9.delta" sparkle:deltaFrom="1.0.9" length="39266" type="application/octet-stream" sparkle:deltaFromSparkleExecutableSize="977808" sparkle:deltaFromSparkleLocales="de,he,ar,el,ja,fa,uk" sparkle:edSignature="M1/1c3w7nrp1By2PlKEivrJvY/xFwMjTBKzaxgkLF9N3Na09gR3Gyqzv02ezOtkKjSucq568qLBG/gvjCyY+Cg=="/>
-                <enclosure url="https://github.com/Windovvsill/windowneon/releases/download/v1.0.10/windowneon1.0.10-1.0.8.delta" sparkle:deltaFrom="1.0.8" length="41246" type="application/octet-stream" sparkle:deltaFromSparkleExecutableSize="977808" sparkle:deltaFromSparkleLocales="de,he,ar,el,ja,fa,uk" sparkle:edSignature="ymKqhCmjqtcB4f2t8sOiW4l9Sx1xoRptqeFm/uvB3i7SOJ+5EwVGhj/HWwB8vvEkjndCJfZoy6HNWHMh/PGNBQ=="/>
-                <enclosure url="https://github.com/Windovvsill/windowneon/releases/download/v1.0.10/windowneon1.0.10-1.0.7.delta" sparkle:deltaFrom="1.0.7" length="49474" type="application/octet-stream" sparkle:deltaFromSparkleExecutableSize="977808" sparkle:deltaFromSparkleLocales="de,he,ar,el,ja,fa,uk" sparkle:edSignature="tQgKLh/aZ3pA0ubJxwZOaap90VmYFR5hila+dJArwLH5sGNppLaRvn6Cy1DcuFczozudC5HuMQb3Z2nibApSBQ=="/>
-                <enclosure url="https://github.com/Windovvsill/windowneon/releases/download/v1.0.10/windowneon1.0.10-1.0.6.delta" sparkle:deltaFrom="1.0.6" length="48698" type="application/octet-stream" sparkle:deltaFromSparkleExecutableSize="977808" sparkle:deltaFromSparkleLocales="de,he,ar,el,ja,fa,uk" sparkle:edSignature="ULYNCqo1D/mJFc5N81Dae+INjha+59BWUImlQ6pfqphrY7K5vNgZYX2wqCzlHn0Nct/+PPShIOhul4uVng3OBA=="/>
-                <enclosure url="https://github.com/Windovvsill/windowneon/releases/download/v1.0.10/windowneon1.0.10-1.0.5.delta" sparkle:deltaFrom="1.0.5" length="50330" type="application/octet-stream" sparkle:deltaFromSparkleExecutableSize="977808" sparkle:deltaFromSparkleLocales="de,he,ar,el,ja,fa,uk" sparkle:edSignature="7mixTYOZlQpAWPSN4uty7WWhemPbCAAnQkFhu7Cxgd4RwtvLDNhr4qcJBzFulLZe8iBjBqjIF+hpi9/vLWLZCA=="/>
             </sparkle:deltas>
         </item>
     </channel>
