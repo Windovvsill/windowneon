@@ -15,21 +15,6 @@ extension AppDelegate {
         sender.menu?.items.forEach { $0.state = $0 == sender ? .on : .off }
     }
 
-    @objc func setWidthForCurrentApp(_ sender: NSMenuItem) {
-        guard let bundleID = NSWorkspace.shared.frontmostApplication?.bundleIdentifier else { return }
-        let width = CGFloat(sender.tag)
-        setBorderWidthOverride(width, for: bundleID)
-        HighlightWindow.borderWidth = width
-        focusWatcher?.redrawBorder()
-    }
-
-    @objc func resetWidthForCurrentApp() {
-        guard let bundleID = NSWorkspace.shared.frontmostApplication?.bundleIdentifier else { return }
-        removeBorderWidthOverride(for: bundleID)
-        HighlightWindow.borderWidth = HighlightWindow.globalBorderWidth
-        focusWatcher?.redrawBorder()
-    }
-
     @objc func toggleTicks(_ sender: NSMenuItem) {
         HighlightWindow.ticksEnabled.toggle()
         sender.state = HighlightWindow.ticksEnabled ? .on : .off

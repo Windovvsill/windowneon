@@ -8,12 +8,13 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     var focusWatcher: FocusWatcher?
     var updaterController: SPUStandardUpdaterController!
 
-    var radiusPanel: CornerRadiusPanel?
-    var borderColorPanel: BorderColorPanel?
+    var borderStylePanel: BorderStylePanel?
     var hotkeyPanel: HotkeyPanel?
+    var menuBorderWindow: NSWindow?
+    var statusMenuIsOpen = false
     var colorPickerBundleID: String?
-    var colorPickerOriginal: (NSColor, NSColor?)?
-    var colorPickerSlot = 1
+    var colorPickerOriginal: (style: BorderStyle, width: CGFloat, radius: CGFloat)?
+    var colorPickerSlot = 0
     var accessibilityRecoveryTimer: Timer?
 
     var hotkeyKeyCode: UInt16 = 11
@@ -59,7 +60,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
 
     func updateStatusIcon() {
         let (color1, color2): (NSColor, NSColor) = HighlightWindow.globallyEnabled
-            ? (HighlightWindow.borderColor, HighlightWindow.borderColor2 ?? HighlightWindow.borderColor)
+            ? (HighlightWindow.style.primaryColor, HighlightWindow.style.colors.last ?? HighlightWindow.style.primaryColor)
             : (.tertiaryLabelColor, .tertiaryLabelColor)
         let config = NSImage.SymbolConfiguration(paletteColors: [color1, color2])
         let icon = NSImage(systemSymbolName: "inset.filled.square", accessibilityDescription: "Windowneon")?
