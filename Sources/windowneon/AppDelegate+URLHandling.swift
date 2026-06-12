@@ -18,11 +18,14 @@ extension AppDelegate {
             guard let hexStr = components?.queryItems?.first(where: { $0.name == "color" })?.value,
                   let color = NSColor(hex: hexStr) else { return }
             let color2 = components?.queryItems?.first(where: { $0.name == "color2" })?.value.flatMap { NSColor(hex: $0) }
-            watcher.windowColorOverrides[key] = (color, color2)
+            let pulse = components?.queryItems?.first(where: { $0.name == "pulse" })?.value == "true"
+            watcher.windowColorOverrides[key] = (color, color2, pulse)
             HighlightWindow.borderColor = color
             HighlightWindow.borderColor2 = color2
+            if pulse { watcher.highlight.startPulsing() } else { watcher.highlight.stopPulsing() }
         case "reset":
             watcher.windowColorOverrides.removeValue(forKey: key)
+            watcher.highlight.stopPulsing()
             let bundleID = NSRunningApplication(processIdentifier: watcher.watchedPID)?.bundleIdentifier ?? ""
             HighlightWindow.borderColor = resolvedColor(for: bundleID)
             HighlightWindow.borderColor2 = resolvedColor2(for: bundleID)

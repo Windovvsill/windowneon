@@ -42,9 +42,11 @@ extension FocusWatcher {
         if let override = windowColorOverrides[AXWindowKey(element: windowElement)] {
             HighlightWindow.borderColor = override.color
             HighlightWindow.borderColor2 = override.color2
+            if override.pulse { highlight.startPulsing() } else { highlight.stopPulsing() }
         } else {
             HighlightWindow.borderColor = resolvedColor(for: bundleID)
             HighlightWindow.borderColor2 = resolvedColor2(for: bundleID)
+            highlight.stopPulsing()
         }
         onColorChange?()
 
