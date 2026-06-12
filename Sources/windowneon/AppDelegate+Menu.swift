@@ -20,27 +20,10 @@ extension AppDelegate {
         widthItem.tag = 1000
         widthItem.submenu = widthSubmenu
 
-        // Per-app border width submenu
-        let perAppWidthSubmenu = NSMenu()
-        let resetWidthItem = NSMenuItem(title: "Use global default", action: #selector(resetWidthForCurrentApp), keyEquivalent: "")
-        resetWidthItem.tag = 0
-        perAppWidthSubmenu.addItem(resetWidthItem)
-        perAppWidthSubmenu.addItem(.separator())
-        for w in Self.widths {
-            let item = NSMenuItem(title: "\(Int(w)) pt", action: #selector(setWidthForCurrentApp(_:)), keyEquivalent: "")
-            item.tag = Int(w)
-            perAppWidthSubmenu.addItem(item)
-        }
-        let perAppWidthItem = NSMenuItem(title: "Set Width for App…", action: nil, keyEquivalent: "")
-        perAppWidthItem.tag = 1003
-        perAppWidthItem.submenu = perAppWidthSubmenu
-
         let launchAtLoginItem = NSMenuItem(title: "Launch at login", action: #selector(toggleLaunchAtLogin(_:)), keyEquivalent: "")
         launchAtLoginItem.state = (SMAppService.mainApp.status == .enabled) ? .on : .off
 
-        let radiusItem = NSMenuItem(title: "Set corner radius…", action: #selector(setCornerRadiusForCurrentApp), keyEquivalent: "")
-        radiusItem.tag = 1001
-        let colorItem = NSMenuItem(title: "Set border color…", action: #selector(setColorForCurrentApp), keyEquivalent: "")
+        let colorItem = NSMenuItem(title: "Customize border…", action: #selector(customizeBorderForCurrentApp), keyEquivalent: "")
         colorItem.tag = 1002
 
         let excludeItem = NSMenuItem(title: "Exclude app from border", action: #selector(toggleExcludeCurrentApp), keyEquivalent: "")
@@ -82,8 +65,6 @@ extension AppDelegate {
         menu.addItem(accessibilityWarningItem)
         menu.addItem(accessibilityWarningSeparator)
         menu.addItem(widthItem)
-        menu.addItem(perAppWidthItem)
-        menu.addItem(radiusItem)
         menu.addItem(colorItem)
         menu.addItem(excludeItem)
         menu.addItem(.separator())
@@ -113,9 +94,7 @@ extension AppDelegate {
 
         let shortcut = hotkeyKeyCode == UInt16.max ? "disabled" : hotkeyDisplay
         menu.item(withTag: 1006)?.title = "Activate borders  \(shortcut)"
-        menu.item(withTag: 1001)?.title = "Set corner radius for \(appName)…"
-        menu.item(withTag: 1002)?.title = "Set border color for \(appName)…"
-        menu.item(withTag: 1003)?.title = "Set width for \(appName)…"
+        menu.item(withTag: 1002)?.title = "Customize border for \(appName)…"
 
         // Exclusion toggle label and state
         let excluded = isAppExcluded(bundleID)
@@ -123,24 +102,90 @@ extension AppDelegate {
             ? "Include \(appName) in border"
             : "Exclude \(appName) from border"
 
-        // Per-app width submenu checkmarks
-        if let submenu = menu.item(withTag: 1003)?.submenu {
-            let overrides = UserDefaults.standard.dictionary(forKey: "borderWidthOverrides") as? [String: Double] ?? [:]
-            let currentOverride = overrides[bundleID]
-            for item in submenu.items {
-                guard item.tag != 0 else {
-                    item.state = currentOverride == nil ? .on : .off
-                    continue
-                }
-                item.state = currentOverride.map { CGFloat($0) } == CGFloat(item.tag) ? .on : .off
-            }
-        }
-
         // Global width submenu checkmarks
         if let submenu = menu.item(withTag: 1000)?.submenu {
             for item in submenu.items {
                 item.state = CGFloat(item.tag) == HighlightWindow.globalBorderWidth ? .on : .off
             }
         }
+
+        statusMenuIsOpen = true
+        if HighlightWindow.globallyEnabled { locateMenuWindow(attempt: 0) }
+    }
+
+    func menuDidClose(_ menu: NSMenu) {
+        statusMenuIsOpen = false
+        menuBorderWindow?.orderOut(nil)
+    }
+
+    // MARK: - The menu deserves a border too
+
+    /// NSMenu windows are system-drawn and don't exist yet in menuWillOpen,
+    /// so poll briefly for the real menu window and wrap its exact frame.
+    /// (Estimating from menu.size doesn't work — it counts hidden items.)
+    private func locateMenuWindow(attempt: Int) {
+        guard attempt < 10 else { return }
+        DispatchQueue.main.asyncAfter(deadline: .now() + (attempt == 0 ? 0.03 : 0.05)) { [weak self] in
+            guard let self, self.statusMenuIsOpen else { return }
+            if let menuRect = self.onScreenMenuWindowRect() {
+                self.showMenuBorder(around: menuRect)
+            } else {
+                self.locateMenuWindow(attempt: attempt + 1)
+            }
+        }
+    }
+
+    /// Finds our process's menu window on screen and returns its frame in
+    /// AppKit screen coordinates.
+    private func onScreenMenuWindowRect() -> CGRect? {
+        guard let infos = CGWindowListCopyWindowInfo(.optionOnScreenOnly, kCGNullWindowID) as? [[String: Any]] else {
+            return nil
+        }
+        let myPID = ProcessInfo.processInfo.processIdentifier
+        let popUpLevel = Int(CGWindowLevelForKey(.popUpMenuWindow))
+        let borderWindowNumber = menuBorderWindow?.windowNumber
+
+        for info in infos {
+            guard let pid = info[kCGWindowOwnerPID as String] as? Int32, pid == myPID,
+                  let layer = info[kCGWindowLayer as String] as? Int, layer == popUpLevel,
+                  let number = info[kCGWindowNumber as String] as? Int, number != borderWindowNumber,
+                  let boundsDict = info[kCGWindowBounds as String] as? NSDictionary,
+                  let cgRect = CGRect(dictionaryRepresentation: boundsDict),
+                  cgRect.width > 50, cgRect.height > 50
+            else { continue }
+            // CGWindow bounds are top-left based; AppKit is bottom-left based.
+            let primaryHeight = NSScreen.screens.first?.frame.maxY ?? 0
+            return CGRect(
+                x: cgRect.minX,
+                y: primaryHeight - cgRect.maxY,
+                width: cgRect.width,
+                height: cgRect.height
+            )
+        }
+        return nil
+    }
+
+    private func showMenuBorder(around menuRect: CGRect) {
+        let pad = HighlightWindow.borderWidth + 2
+        let window = menuBorderWindow ?? makeMenuBorderWindow()
+        window.setFrame(menuRect.insetBy(dx: -pad, dy: -pad), display: true)
+        (window.contentView as? BorderView)?.refresh()
+        window.orderFrontRegardless()
+    }
+
+    private func makeMenuBorderWindow() -> NSWindow {
+        let window = NSWindow(contentRect: .zero, styleMask: [.borderless], backing: .buffered, defer: true)
+        window.isOpaque = false
+        window.backgroundColor = .clear
+        window.ignoresMouseEvents = true
+        window.level = .popUpMenu
+        window.collectionBehavior = [.canJoinAllSpaces, .stationary, .ignoresCycle]
+        window.isReleasedWhenClosed = false
+        let view = BorderView()
+        view.ticksAllowed = false
+        view.radiusOverride = 16 // tracks the menu's own curvature plus the gap
+        window.contentView = view
+        menuBorderWindow = window
+        return window
     }
 }
