@@ -12,8 +12,7 @@ extension FocusWatcher {
 
         let bundleID = NSRunningApplication(processIdentifier: pid)?.bundleIdentifier ?? ""
         HighlightWindow.cornerRadius = cornerRadius(for: bundleID)
-        HighlightWindow.borderColor = resolvedColor(for: bundleID)
-        HighlightWindow.borderColor2 = resolvedColor2(for: bundleID)
+        HighlightWindow.style = resolvedStyle(for: bundleID)
         HighlightWindow.borderWidth = effectiveBorderWidth(for: bundleID)
         onColorChange?()
 
@@ -39,15 +38,8 @@ extension FocusWatcher {
         watchedWindow = windowElement
 
         let bundleID = NSRunningApplication(processIdentifier: watchedPID)?.bundleIdentifier ?? ""
-        if let override = windowColorOverrides[AXWindowKey(element: windowElement)] {
-            HighlightWindow.borderColor = override.color
-            HighlightWindow.borderColor2 = override.color2
-            if override.pulse { highlight.startPulsing() } else { highlight.stopPulsing() }
-        } else {
-            HighlightWindow.borderColor = resolvedColor(for: bundleID)
-            HighlightWindow.borderColor2 = resolvedColor2(for: bundleID)
-            highlight.stopPulsing()
-        }
+        HighlightWindow.style = windowColorOverrides[AXWindowKey(element: windowElement)]
+            ?? resolvedStyle(for: bundleID)
         onColorChange?()
 
         var obs: AXObserver?

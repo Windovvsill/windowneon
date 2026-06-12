@@ -16,8 +16,12 @@ enum SettingsPorter {
         bundleIDs.formUnion(widthOverrides.keys)
         bundleIDs.formUnion(radiusOverrides.keys)
         bundleIDs.formUnion(excluded)
-        for key in ud.dictionaryRepresentation().keys where key.hasPrefix("appColor_") {
-            bundleIDs.insert(String(key.dropFirst("appColor_".count)))
+        for key in ud.dictionaryRepresentation().keys {
+            if key.hasPrefix("borderStyle_") {
+                bundleIDs.insert(String(key.dropFirst("borderStyle_".count)))
+            } else if key.hasPrefix("appColor_") {
+                bundleIDs.insert(String(key.dropFirst("appColor_".count)))
+            }
         }
 
         var apps: [String: [String: Any]] = [:]
@@ -26,14 +30,13 @@ enum SettingsPorter {
             if let w = widthOverrides[id]  { entry["borderWidth"]   = w }
             if let r = radiusOverrides[id] { entry["cornerRadius"]  = r }
             if excluded.contains(id)       { entry["excluded"]      = true }
-            if let c = appColor(for: id)   { entry["color"]         = hex(from: c) }
-            if let c = appColor2(for: id)  { entry["color2"]        = hex(from: c) }
+            if let s = appStyle(for: id)   { entry["style"]         = s.dictionary }
             apps[id] = entry
         }
 
         let savedWidth = ud.double(forKey: "borderWidth")
         let payload: [String: Any] = [
-            "version": 1,
+            "version": 2,
             "global": [
                 "borderWidth":  savedWidth > 0 ? savedWidth : Double(HighlightWindow.globalBorderWidth),
                 "ticksEnabled": ud.object(forKey: "ticksEnabled") as? Bool ?? true,
@@ -76,33 +79,22 @@ enum SettingsPorter {
                 if let ex = entry["excluded"] as? Bool {
                     if ex { excludedSet.insert(id) } else { excludedSet.remove(id) }
                 }
-                if let hexStr = entry["color"]  as? String, let c = color(from: hexStr) { setAppColor(c,  for: id) }
-                if let hexStr = entry["color2"] as? String, let c = color(from: hexStr) { setAppColor2(c, for: id) }
+                if let styleDict = entry["style"] as? [String: Any],
+                   let style = BorderStyle(dictionary: styleDict) {
+                    setAppStyle(style, for: id)
+                } else {
+                    // Version 1 files: flat color/color2 hex strings
+                    var colors: [NSColor] = []
+                    if let hex = entry["color"]  as? String, let c = NSColor(hexString: hex) { colors.append(c) }
+                    if let hex = entry["color2"] as? String, let c = NSColor(hexString: hex) { colors.append(c) }
+                    if !colors.isEmpty { setAppStyle(BorderStyle(colors: colors), for: id) }
+                }
             }
 
             ud.set(widthOverrides,       forKey: "borderWidthOverrides")
             ud.set(radiusOverrides,      forKey: "cornerRadiusOverrides")
             ud.set(Array(excludedSet),   forKey: "excludedApps")
         }
-    }
-
-    // MARK: - Color helpers
-
-    private static func hex(from color: NSColor) -> String {
-        guard let c = color.usingColorSpace(.sRGB) else { return "000000" }
-        return String(format: "%02X%02X%02X",
-                      Int((c.redComponent   * 255).rounded()),
-                      Int((c.greenComponent * 255).rounded()),
-                      Int((c.blueComponent  * 255).rounded()))
-    }
-
-    private static func color(from hex: String) -> NSColor? {
-        let h = hex.trimmingCharacters(in: CharacterSet(charactersIn: "#"))
-        guard h.count == 6, let value = UInt64(h, radix: 16) else { return nil }
-        let r = CGFloat((value >> 16) & 0xFF) / 255
-        let g = CGFloat((value >>  8) & 0xFF) / 255
-        let b = CGFloat( value        & 0xFF) / 255
-        return NSColor(srgbRed: r, green: g, blue: b, alpha: 1)
     }
 
     enum Err: LocalizedError {

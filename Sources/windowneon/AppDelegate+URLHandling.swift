@@ -5,46 +5,50 @@ extension AppDelegate {
         for url in urls { handleURL(url) }
     }
 
+    // windowneon://set?colors=FF0000,00FF00&stroke=dashed&motion=spin&glow=true&speed=1.5
+    // Legacy params still work: color=, color2=, pulse=true.
     private func handleURL(_ url: URL) {
         guard url.scheme == "windowneon",
               let watcher = focusWatcher,
               let windowElement = watcher.watchedWindow else { return }
 
         let components = URLComponents(url: url, resolvingAgainstBaseURL: false)
+        let param: (String) -> String? = { name in
+            components?.queryItems?.first(where: { $0.name == name })?.value
+        }
         let key = AXWindowKey(element: windowElement)
 
         switch url.host {
         case "set":
-            guard let hexStr = components?.queryItems?.first(where: { $0.name == "color" })?.value,
-                  let color = NSColor(hex: hexStr) else { return }
-            let color2 = components?.queryItems?.first(where: { $0.name == "color2" })?.value.flatMap { NSColor(hex: $0) }
-            let pulse = components?.queryItems?.first(where: { $0.name == "pulse" })?.value == "true"
-            watcher.windowColorOverrides[key] = (color, color2, pulse)
-            HighlightWindow.borderColor = color
-            HighlightWindow.borderColor2 = color2
-            if pulse { watcher.highlight.startPulsing() } else { watcher.highlight.stopPulsing() }
+            var colors = param("colors")?
+                .split(separator: ",")
+                .compactMap { NSColor(hexString: String($0)) } ?? []
+            if colors.isEmpty, let c = param("color").flatMap(NSColor.init(hexString:)) {
+                colors = [c]
+                if let c2 = param("color2").flatMap(NSColor.init(hexString:)) { colors.append(c2) }
+            }
+            guard !colors.isEmpty else { return }
+
+            let style = BorderStyle(
+                colors: colors,
+                stroke: param("stroke").flatMap(BorderStyle.Stroke.init(rawValue:)) ?? .solid,
+                motion: param("pulse") == "true"
+                    ? .pulse
+                    : param("motion").flatMap(BorderStyle.Motion.init(rawValue:)) ?? .none,
+                glow: param("glow") == "true",
+                speed: param("speed").flatMap(Double.init) ?? 1.0
+            )
+            watcher.windowColorOverrides[key] = style
+            HighlightWindow.style = style
         case "reset":
             watcher.windowColorOverrides.removeValue(forKey: key)
-            watcher.highlight.stopPulsing()
             let bundleID = NSRunningApplication(processIdentifier: watcher.watchedPID)?.bundleIdentifier ?? ""
-            HighlightWindow.borderColor = resolvedColor(for: bundleID)
-            HighlightWindow.borderColor2 = resolvedColor2(for: bundleID)
+            HighlightWindow.style = resolvedStyle(for: bundleID)
         default:
             return
         }
 
         watcher.redrawBorder()
         updateStatusIcon()
-    }
-}
-
-private extension NSColor {
-    convenience init?(hex: String) {
-        let h = hex.trimmingCharacters(in: CharacterSet(charactersIn: "#"))
-        guard h.count == 6, let value = UInt64(h, radix: 16) else { return nil }
-        let r = CGFloat((value >> 16) & 0xFF) / 255
-        let g = CGFloat((value >>  8) & 0xFF) / 255
-        let b = CGFloat( value        & 0xFF) / 255
-        self.init(srgbRed: r, green: g, blue: b, alpha: 1)
     }
 }

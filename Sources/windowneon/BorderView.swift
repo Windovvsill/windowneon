@@ -1,44 +1,60 @@
 import AppKit
 
 class BorderView: NSView {
-    override func draw(_ dirtyRect: NSRect) {
-        let color = HighlightWindow.borderColor
-        let radius = HighlightWindow.cornerRadius
+    /// Set false for auxiliary borders (e.g. around the status menu) that
+    /// shouldn't inherit the focused window's tick marks.
+    var ticksAllowed = true
+    /// Overrides the per-app corner radius for auxiliary borders.
+    var radiusOverride: CGFloat?
+
+    private let renderer = BorderStyleRenderer()
+
+    override init(frame: NSRect) {
+        super.init(frame: frame)
+        layer = CALayer()
+        wantsLayer = true
+        renderer.attach(to: layer!)
+    }
+
+    required init?(coder: NSCoder) { fatalError() }
+
+    override func layout() {
+        super.layout()
+        refresh()
+    }
+
+    override func viewDidChangeBackingProperties() {
+        super.viewDidChangeBackingProperties()
+        refresh()
+    }
+
+    func refresh() {
+        guard let layer else { return }
+        let style = HighlightWindow.style
+        let radius = radiusOverride ?? HighlightWindow.cornerRadius
         let width = HighlightWindow.borderWidth
         let inset = width / 2
 
-        if let color2 = HighlightWindow.borderColor2 {
-            NSGraphicsContext.saveGraphicsState()
-            let outer = NSBezierPath(roundedRect: bounds, xRadius: radius + inset, yRadius: radius + inset)
-            let inner = NSBezierPath(
-                roundedRect: bounds.insetBy(dx: width, dy: width),
-                xRadius: max(0, radius - inset), yRadius: max(0, radius - inset)
-            )
-            outer.append(inner)
-            outer.windingRule = .evenOdd
-            outer.addClip()
-            NSGradient(starting: color, ending: color2)?.draw(in: bounds, angle: -45)
-            NSGraphicsContext.restoreGraphicsState()
-        } else {
-            let path = NSBezierPath(roundedRect: bounds.insetBy(dx: inset, dy: inset), xRadius: radius, yRadius: radius)
-            path.lineWidth = width
-            color.setStroke()
-            path.stroke()
-        }
+        let path = CGMutablePath()
+        let ringRect = bounds.insetBy(dx: inset, dy: inset)
+        guard ringRect.width > 0, ringRect.height > 0 else { return }
+        let r = min(radius, ringRect.width / 2, ringRect.height / 2)
+        path.addRoundedRect(in: ringRect, cornerWidth: r, cornerHeight: r)
+        if HighlightWindow.ticksEnabled && ticksAllowed { addTicks(to: path, width: width, inset: inset) }
 
-        if HighlightWindow.ticksEnabled { drawTicks(color: color, color2: HighlightWindow.borderColor2, width: width, inset: inset) }
+        renderer.render(
+            style: style,
+            path: path,
+            lineWidth: width,
+            bounds: bounds,
+            scale: window?.backingScaleFactor ?? 2
+        )
+        layer.isHidden = false
     }
 
-    // Returns the interpolated gradient color at a point for a -45° gradient (top-left=color1, bottom-right=color2).
-    // t = (x - y + height) / (width + height) projects the point onto the gradient axis.
-    private func gradientColor(at point: CGPoint, from color1: NSColor, to color2: NSColor) -> NSColor? {
-        let range = bounds.width + bounds.height
-        guard range > 0 else { return color1 }
-        let t = max(0, min(1, (point.x - point.y + bounds.height) / range))
-        return color1.blended(withFraction: t, of: color2)
-    }
-
-    private func drawTicks(color: NSColor, color2: NSColor?, width: CGFloat, inset: CGFloat) {
+    // Ticks are part of the mask path, so they pick up the gradient (and any
+    // dash/motion effect) exactly like the ring does.
+    private func addTicks(to path: CGMutablePath, width: CGFloat, inset: CGFloat) {
         guard let windowFrame = self.window?.frame else { return }
 
         let threshold: CGFloat = 2
@@ -66,14 +82,8 @@ class BorderView: NSView {
         ]
 
         for (show, start, end) in candidates where show {
-            let tickColor = color2.flatMap { gradientColor(at: start, from: color, to: $0) } ?? color
-            let path = NSBezierPath()
             path.move(to: start)
-            path.line(to: end)
-            path.lineWidth = width
-            path.lineCapStyle = .round
-            tickColor.setStroke()
-            path.stroke()
+            path.addLine(to: end)
         }
     }
 }

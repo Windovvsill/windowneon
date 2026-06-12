@@ -4,40 +4,40 @@ private let palette: [NSColor] = stride(from: 0, to: 360, by: 30).map { hue in
     NSColor(hue: CGFloat(hue) / 360, saturation: 0.45, brightness: 0.92, alpha: 1)
 }
 
-func appColor(for bundleID: String) -> NSColor? {
-    guard let data = UserDefaults.standard.data(forKey: "appColor_\(bundleID)"),
-          let color = try? NSKeyedUnarchiver.unarchivedObject(ofClass: NSColor.self, from: data)
-    else { return nil }
-    return color
-}
-
-func setAppColor(_ color: NSColor, for bundleID: String) {
-    if let data = try? NSKeyedArchiver.archivedData(withRootObject: color, requiringSecureCoding: false) {
-        UserDefaults.standard.set(data, forKey: "appColor_\(bundleID)")
+/// User-saved style for an app, if any. Falls back to the legacy
+/// appColor_/appColor2_ keys written by older versions.
+func appStyle(for bundleID: String) -> BorderStyle? {
+    if let dict = UserDefaults.standard.dictionary(forKey: "borderStyle_\(bundleID)"),
+       let style = BorderStyle(dictionary: dict) {
+        return style
     }
+    guard let c1 = legacyColor(key: "appColor_\(bundleID)") else { return nil }
+    var colors = [c1]
+    if let c2 = legacyColor(key: "appColor2_\(bundleID)") { colors.append(c2) }
+    return BorderStyle(colors: colors)
 }
 
-func resolvedColor(for bundleID: String) -> NSColor {
-    appColor(for: bundleID) ?? paletteColor(for: bundleID)
-}
-
-func appColor2(for bundleID: String) -> NSColor? {
-    guard let data = UserDefaults.standard.data(forKey: "appColor2_\(bundleID)"),
-          let color = try? NSKeyedUnarchiver.unarchivedObject(ofClass: NSColor.self, from: data)
-    else { return nil }
-    return color
-}
-
-func setAppColor2(_ color: NSColor?, for bundleID: String) {
-    if let color, let data = try? NSKeyedArchiver.archivedData(withRootObject: color, requiringSecureCoding: false) {
-        UserDefaults.standard.set(data, forKey: "appColor2_\(bundleID)")
+func setAppStyle(_ style: BorderStyle?, for bundleID: String) {
+    let ud = UserDefaults.standard
+    if let style {
+        ud.set(style.dictionary, forKey: "borderStyle_\(bundleID)")
     } else {
-        UserDefaults.standard.removeObject(forKey: "appColor2_\(bundleID)")
+        ud.removeObject(forKey: "borderStyle_\(bundleID)")
     }
+    // The new key supersedes the legacy pair; drop them so they can't resurface.
+    ud.removeObject(forKey: "appColor_\(bundleID)")
+    ud.removeObject(forKey: "appColor2_\(bundleID)")
 }
 
-func resolvedColor2(for bundleID: String) -> NSColor? {
-    appColor2(for: bundleID)
+func resolvedStyle(for bundleID: String) -> BorderStyle {
+    appStyle(for: bundleID) ?? BorderStyle(colors: [paletteColor(for: bundleID)])
+}
+
+private func legacyColor(key: String) -> NSColor? {
+    guard let data = UserDefaults.standard.data(forKey: key),
+          let color = try? NSKeyedUnarchiver.unarchivedObject(ofClass: NSColor.self, from: data)
+    else { return nil }
+    return color
 }
 
 func paletteColor(for bundleID: String) -> NSColor {

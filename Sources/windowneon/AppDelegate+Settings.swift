@@ -23,8 +23,7 @@ extension AppDelegate {
             try SettingsPorter.import(from: data)
             // Re-apply settings for the current window
             if let bundleID = NSWorkspace.shared.frontmostApplication?.bundleIdentifier {
-                HighlightWindow.borderColor   = resolvedColor(for: bundleID)
-                HighlightWindow.borderColor2  = resolvedColor2(for: bundleID)
+                HighlightWindow.style         = resolvedStyle(for: bundleID)
                 HighlightWindow.cornerRadius  = cornerRadius(for: bundleID)
                 HighlightWindow.borderWidth   = effectiveBorderWidth(for: bundleID)
             }
