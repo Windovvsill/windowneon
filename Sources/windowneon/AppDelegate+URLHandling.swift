@@ -5,7 +5,7 @@ extension AppDelegate {
         for url in urls { handleURL(url) }
     }
 
-    // windowneon://set?colors=FF0000,00FF00&stroke=dashed&motion=spin&glow=true&speed=1.5
+    // windowneon://set?colors=FF0000,00FF00&stroke=dashed&motion=spin&glow=true&speed=1.5&width=4&radius=12
     // Legacy params still work: color=, color2=, pulse=true.
     private func handleURL(_ url: URL) {
         guard url.scheme == "windowneon",
@@ -38,12 +38,21 @@ extension AppDelegate {
                 glow: param("glow") == "true",
                 speed: param("speed").flatMap(Double.init) ?? 1.0
             )
-            watcher.windowColorOverrides[key] = style
+            let override = WindowStyleOverride(
+                style: style,
+                width: param("width").flatMap(Double.init).map { CGFloat(min(max($0, 0.5), 20)) },
+                radius: param("radius").flatMap(Double.init).map { CGFloat(min(max($0, 0), 40)) }
+            )
+            watcher.windowColorOverrides[key] = override
             HighlightWindow.style = style
+            if let w = override.width { HighlightWindow.borderWidth = w }
+            if let r = override.radius { HighlightWindow.cornerRadius = r }
         case "reset":
             watcher.windowColorOverrides.removeValue(forKey: key)
             let bundleID = NSRunningApplication(processIdentifier: watcher.watchedPID)?.bundleIdentifier ?? ""
             HighlightWindow.style = resolvedStyle(for: bundleID)
+            HighlightWindow.borderWidth = effectiveBorderWidth(for: bundleID)
+            HighlightWindow.cornerRadius = cornerRadius(for: bundleID)
         default:
             return
         }

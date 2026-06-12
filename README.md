@@ -22,9 +22,13 @@ macOS 13 or later.
 
 The menu bar icon gives access to all settings, which are per-app unless noted:
 
-- **Border width** -- choose a global default from 1-10pt, or override per app
-- **Set corner radius** -- live preview slider to match any window style
-- **Set border color** -- solid color or two-color gradient; updates live as you pick
+- **Border width** -- choose a global default from 1-10pt
+- **Customize border** -- a per-app style editor with live preview:
+  - up to 8 colors blended as a gradient (with opacity)
+  - stroke style: solid, dashed, or dotted
+  - motion: pulse, spin (the gradient sweeps around the window), or march (marching-ants dashes), with a speed slider
+  - glow for a neon halo
+  - per-app width and corner radius overrides
 - **Exclude app from border** -- hide the border for specific apps
 - **Show edge ticks** -- short perpendicular marks at the midpoint of each edge, useful in split-screen to see which side is focused at a glance; ticks are suppressed at screen edges
 - **Draw border outside window** -- extend the border outward instead of inward
@@ -36,15 +40,33 @@ The menu bar icon gives access to all settings, which are per-app unless noted:
 
 ## URL scheme
 
-Windowneon registers the `windowneon://` URL scheme so you can control the border color from scripts or the terminal.
+Windowneon registers the `windowneon://` URL scheme so you can control the border of the focused window from scripts or the terminal.
 
 | URL | Effect |
 |-----|--------|
-| `windowneon://set?color=FF0000` | Override the focused window's border to the given hex color |
-| `windowneon://set?color=FF0000&color2=00FF00` | Same, with a two-color gradient |
-| `windowneon://reset` | Clear the override on the focused window and restore its per-app color |
+| `windowneon://set?colors=FF0000` | Override the focused window's border to the given hex color |
+| `windowneon://set?colors=FF0000,00FF00,0000FF` | Multi-color gradient (up to 8, comma-separated) |
+| `windowneon://reset` | Clear the override on the focused window and restore its per-app style |
 
-The override is in-memory only — it clears when the app quits.
+`set` accepts these parameters:
+
+| Parameter | Values | Effect |
+|-----------|--------|--------|
+| `colors` | comma-separated hex, `RRGGBB` or `RRGGBBAA` | 1-8 colors; required (or use legacy `color`/`color2`) |
+| `stroke` | `solid`, `dashed`, `dotted` | stroke pattern (default `solid`) |
+| `motion` | `none`, `pulse`, `spin`, `march` | animation; `march` needs a dashed or dotted stroke |
+| `glow` | `true` | neon halo around the border |
+| `speed` | `0.25`-`4` | animation speed multiplier (default `1`) |
+| `width` | `0.5`-`20` | border width in points for this window |
+| `radius` | `0`-`40` | corner radius in points for this window |
+
+For example, dotted rainbow marching ants:
+
+```bash
+open "windowneon://set?colors=FF0000,FF9900,FFEE00,00CC44,2255FF,AA44FF&stroke=dotted&motion=march&glow=true&width=5"
+```
+
+The legacy `color=`, `color2=`, and `pulse=true` parameters still work. Overrides are in-memory only — they clear when the app quits.
 
 > **Note:** URL scheme handling requires the app to be running as a built `.app` bundle. It does not work when launched via `swift run`. To test, run `make app && open windowneon.app` first.
 
@@ -54,7 +76,7 @@ A common use case is a shell wrapper that turns borders red when you SSH into a 
 # ~/.zshrc
 function ssh() {
     if [[ "$*" == *prod* ]]; then
-        open "windowneon://set?color=FF0000"
+        open "windowneon://set?colors=FF0000&motion=pulse&glow=true"
         command ssh "$@"
         open "windowneon://reset"
     else

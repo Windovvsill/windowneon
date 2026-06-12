@@ -30,6 +30,14 @@ struct BorderStyle: Equatable {
     }
 }
 
+/// A per-window override set via the URL scheme: a full style plus optional
+/// width and corner radius. In-memory only.
+struct WindowStyleOverride {
+    var style: BorderStyle
+    var width: CGFloat?
+    var radius: CGFloat?
+}
+
 // MARK: - Serialization (UserDefaults dictionaries, settings files, URL params)
 
 extension BorderStyle {

@@ -21,7 +21,7 @@ class FocusWatcher {
 
     var onColorChange: (() -> Void)?
 
-    var windowColorOverrides: [AXWindowKey: BorderStyle] = [:]
+    var windowColorOverrides: [AXWindowKey: WindowStyleOverride] = [:]
     var pendingWindowUpdate: DispatchWorkItem?
     static let retryDelays: [Double] = [0.05, 0.1, 0.3, 0.5, 1.0]
 
