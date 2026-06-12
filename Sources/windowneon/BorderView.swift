@@ -42,7 +42,10 @@ class BorderView: NSView {
         guard let windowFrame = self.window?.frame else { return }
 
         let threshold: CGFloat = 2
-        var showTop = true, showBottom = true, showLeft = true, showRight = true
+        var showTop    = bounds.height >= 120
+        var showBottom = bounds.height >= 120
+        var showLeft   = bounds.width  >= 120
+        var showRight  = bounds.width  >= 120
         for screen in NSScreen.screens {
             let sf = screen.frame
             if abs(windowFrame.maxY - sf.maxY) < threshold { showTop = false }
